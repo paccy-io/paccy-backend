@@ -22,6 +22,9 @@ func main() {
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		fmt.Println(mongoDB.GetDatabase().Name())
+
+
+
 		return c.SendString("Hello world!")
 	})
 
