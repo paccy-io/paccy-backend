@@ -1,4 +1,8 @@
-package user
+package models
+
+import (
+	. "github.com/paccy-io/paccy-backend/pkg/errors"
+)
 
 type UserRole string
 
@@ -21,4 +25,25 @@ func IsValidRole(role string) bool {
 	default:
 		return false
 	}
+}
+
+func ValidateRoles(roles []string) error {
+	for _, role := range roles {
+		if !IsValidRole(role) {
+			return ErrInvalidRole
+		}
+	}
+	return nil
+}
+
+func ValidateAndConvertRoles(roles []string) ([]UserRole, error) {
+	validRoles := []UserRole{}
+	for _, role := range roles {
+		if IsValidRole(role) {
+			validRoles = append(validRoles, UserRole(role))
+		} else {
+			return nil, ErrInvalidRole
+		}
+	}
+	return validRoles, nil
 }

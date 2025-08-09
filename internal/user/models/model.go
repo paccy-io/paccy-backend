@@ -1,4 +1,4 @@
-package user
+package models
 
 import (
 	"strings"
@@ -8,7 +8,8 @@ import (
 )
 
 type User struct {
-	models.BaseModel
+	models.BaseModel `bson:",inline"` // make them in root level not in BaseModel, by using an inline struct
+
 	Email             string            `json:"email" bson:"email" validate:"required,email"`
 	Phone             string            `json:"phone,omitempty" bson:"phone,omitempty" validate:"omitempty,e164"`
 	Username          string            `json:"username" bson:"username" validate:"required,min=3,max=50"`
@@ -27,6 +28,7 @@ type User struct {
 	AuthProvider    AuthProvider `json:"auth_provider" bson:"auth_provider"`
 	ProviderID      string       `json:"provider_id,omitempty" bson:"provider_id,omitempty"`
 	OAuthSignedUpAt *time.Time   `json:"oauth_signed_up_at,omitempty" bson:"oauth_signed_up_at,omitempty"`
+	TermsAccepted   bool         `json:"terms_accepted" bson:"terms_accepted"`
 }
 
 type UserPrefs struct {
@@ -38,6 +40,7 @@ type UserPrefs struct {
 }
 
 type UserProfile struct {
+	IsPublicProfile bool              `json:"is_public_profile" bson:"is_public_profile"`                     //default false                    // boolean
 	InterestInPaccy string            `json:"interest_in_paccy,omitempty" bson:"interest_in_paccy,omitempty"` // Why are you interested in Paccy?
 	ReferralSource  string            `json:"referral_source,omitempty" bson:"referral_source,omitempty"`     // How did you hear about us?
 	AvatarURL       string            `json:"avatar_url" bson:"avatar_url"`
@@ -51,20 +54,20 @@ type UserProfile struct {
 }
 
 type SafeUser struct {
-	models.BaseModel                 // ID, UUID, CreatedAt, UpdatedAt, DeletedAt, Version
-	Email             string         `json:"email"`
-	Phone             string         `json:"phone,omitempty"`
-	Username          string         `json:"username"`
-	FirstName         string         `json:"first_name"`
-	LastName          string         `json:"last_name"`
-	Location          *string        `json:"location,omitempty"`
+	models.BaseModel                    // ID, UUID, CreatedAt, UpdatedAt, DeletedAt, Version
+	Email             string            `json:"email"`
+	Phone             string            `json:"phone,omitempty"`
+	Username          string            `json:"username"`
+	FirstName         string            `json:"first_name"`
+	LastName          string            `json:"last_name"`
+	Location          *string           `json:"location,omitempty"`
 	VerificationLevel VerificationLevel `json:"verification_level"`
-	Roles             []UserRole     `json:"roles"`
-	LastLoginAt       *time.Time     `json:"last_login_at,omitempty"`
-	BannedAt          *time.Time     `json:"banned_at,omitempty"`
-	BanReason         string         `json:"ban_reason,omitempty"`
-	Preferences       UserPrefs      `json:"preferences"`
-	Profile           UserProfile    `json:"profile"`
+	Roles             []UserRole        `json:"roles"`
+	LastLoginAt       *time.Time        `json:"last_login_at,omitempty"`
+	BannedAt          *time.Time        `json:"banned_at,omitempty"`
+	BanReason         string            `json:"ban_reason,omitempty"`
+	Preferences       UserPrefs         `json:"preferences"`
+	Profile           UserProfile       `json:"profile"`
 }
 
 func GetDefaultUserPrefs() UserPrefs {
@@ -183,8 +186,8 @@ func (u *User) SetRoles(roles []UserRole) { // removes all roles and sets new on
 	}
 }
 
-func (u *User) Sanitize() SafeUser {
-	return SafeUser{
+func (u *User) ToSafe() *SafeUser {
+	return &SafeUser{
 		BaseModel:         u.BaseModel,
 		Email:             u.Email,
 		Phone:             u.Phone,

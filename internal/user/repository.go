@@ -2,45 +2,42 @@ package user
 
 import (
 	"context"
-	"errors"
+
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/google/uuid"
-	user "github.com/paccy-io/paccy-backend/internal/user/models"
+	"github.com/paccy-io/paccy-backend/internal/user/models"
 
+	. "github.com/paccy-io/paccy-backend/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	ErrUserNotFound = errors.New("user not found")
-	ErrUserExists   = errors.New("user already exists")
-)
-
 type UserRepository interface {
-	Create(ctx context.Context, user *user.User) error
-	GetByID(ctx context.Context, id primitive.ObjectID) (*user.SafeUser, error)
-	GetByUUID(ctx context.Context, uuid uuid.UUID) (*user.SafeUser, error)
-	GetByEmail(ctx context.Context, email string) (*user.SafeUser, error)
-	GetByUsername(ctx context.Context, username string) (*user.SafeUser, error)
+	Create(ctx context.Context, user *models.User) (*models.User, error)
+	GetByID(ctx context.Context, id primitive.ObjectID) (*models.User, error)
+	GetByUUID(ctx context.Context, uuid uuid.UUID) (*models.User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, error)
+	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	UpdateFields(ctx context.Context, id primitive.ObjectID, fields bson.M) error
 	Delete(ctx context.Context, id primitive.ObjectID) error
 
 	// Query operations
-	GetUsers(ctx context.Context, offset, limit int) ([]user.SafeUser, int, error)
-	Search(ctx context.Context, query string, offset, limit int) ([]user.SafeUser, int, error)
-	GetUsersByRole(ctx context.Context, role user.UserRole, offset, limit int) ([]user.SafeUser, int, error)
-	GetActiveUsers(ctx context.Context, offset, limit int) ([]user.SafeUser, int, error)
+	GetUsers(ctx context.Context, offset, limit int) ([]models.User, int, error)
+	Search(ctx context.Context, query string, offset, limit int) ([]models.User, int, error)
+	GetUsersByRole(ctx context.Context, role models.UserRole, offset, limit int) ([]models.User, int, error)
+	GetActiveUsers(ctx context.Context, offset, limit int) ([]models.User, int, error)
 
 	// Utility operations
 	Exists(ctx context.Context, id primitive.ObjectID) bool
 	ExistsByEmail(ctx context.Context, email string) bool
 	ExistsByUsername(ctx context.Context, username string) bool
 	Count(ctx context.Context) (int64, error)
-	CountByRole(ctx context.Context, role user.UserRole) (int64, error)
+	CountByRole(ctx context.Context, role models.UserRole) (int64, error)
 }
 
 type mongoUserRepository struct {
@@ -49,7 +46,7 @@ type mongoUserRepository struct {
 }
 
 func NewMongoUserRepository(db *mongo.Database) UserRepository {
-	collection := db.Collection(user.GetCollectionName())
+	collection := db.Collection(models.GetCollectionName())
 
 	repo := &mongoUserRepository{
 		collection: collection,
@@ -61,21 +58,16 @@ func NewMongoUserRepository(db *mongo.Database) UserRepository {
 	return repo
 }
 
-// decodeAndSanitize is a helper function to decode cursor results and sanitize users
-func decodeAndSanitize(ctx context.Context, cursor *mongo.Cursor) ([]user.SafeUser, error) {
+// decodeUsers is a helper function to decode cursor results
+func decodeUsers(ctx context.Context, cursor *mongo.Cursor) ([]models.User, error) {
 	defer cursor.Close(ctx)
 
-	var rawUsers []user.User
-	if err := cursor.All(ctx, &rawUsers); err != nil {
+	var users []models.User
+	if err := cursor.All(ctx, &users); err != nil {
 		return nil, err
 	}
 
-	sanitizedUsers := make([]user.SafeUser, 0, len(rawUsers))
-	for _, u := range rawUsers {
-		sanitizedUsers = append(sanitizedUsers, u.Sanitize())
-	}
-
-	return sanitizedUsers, nil
+	return users, nil
 }
 
 func (r *mongoUserRepository) createIndexes() {
@@ -143,32 +135,32 @@ func (r *mongoUserRepository) createIndexes() {
 	}
 }
 
-func (r *mongoUserRepository) Create(ctx context.Context, user *user.User) error {
+func (r *mongoUserRepository) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	if r.ExistsByEmail(ctx, user.Email) || r.ExistsByUsername(ctx, user.Username) {
-		return ErrUserExists
+		return nil, ErrUserExists
 	}
-
 	user.BeforeCreate()
 
 	result, err := r.collection.InsertOne(ctx, user)
 	if err != nil {
+		fmt.Println("Error inserting user:", err)
 		if mongo.IsDuplicateKeyError(err) {
-			return ErrUserExists
+			return nil, ErrUserExists
 		}
-		return err
+		return nil, err
 	}
 
 	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
 		user.ID = oid
 	}
 
-	return nil
+	return r.GetByID(ctx, user.ID)
 }
 
-func (r *mongoUserRepository) GetByID(ctx context.Context, id primitive.ObjectID) (*user.SafeUser, error) {
-	filter := bson.M{"_id": id, "deleted_at": nil, "roles": bson.M{"$nin": []user.UserRole{user.RoleBanned}}} // Exclude banned users
+func (r *mongoUserRepository) GetByID(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
+	filter := bson.M{"_id": id, "deleted_at": nil, "roles": bson.M{"$nin": []models.UserRole{models.RoleBanned}}} // Exclude banned users
 
-	var u user.User
+	var u models.User
 	err := r.collection.FindOne(ctx, filter).Decode(&u)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -177,14 +169,12 @@ func (r *mongoUserRepository) GetByID(ctx context.Context, id primitive.ObjectID
 		return nil, err
 	}
 
-	sanitizedUser := u.Sanitize()
-
-	return &sanitizedUser, nil
+	return &u, nil
 }
 
-func (r *mongoUserRepository) GetByUUID(ctx context.Context, uuid uuid.UUID) (*user.SafeUser, error) {
-	filter := bson.M{"uuid": uuid, "deleted_at": nil, "roles": bson.M{"$nin": []user.UserRole{user.RoleBanned}}} // Exclude banned users
-	var u user.User
+func (r *mongoUserRepository) GetByUUID(ctx context.Context, uuid uuid.UUID) (*models.User, error) {
+	filter := bson.M{"uuid": uuid, "deleted_at": nil, "roles": bson.M{"$nin": []models.UserRole{models.RoleBanned}}} // Exclude banned users
+	var u models.User
 	err := r.collection.FindOne(ctx, filter).Decode(&u)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -193,30 +183,12 @@ func (r *mongoUserRepository) GetByUUID(ctx context.Context, uuid uuid.UUID) (*u
 		return nil, err
 	}
 
-	sanitizedUser := u.Sanitize()
-
-	return &sanitizedUser, nil
+	return &u, nil
 }
 
-func (r *mongoUserRepository) GetByEmail(ctx context.Context, email string) (*user.SafeUser, error) {
-	filter := bson.M{"email": email, "deleted_at": nil, "roles": bson.M{"$nin": []user.UserRole{user.RoleBanned}}} // Exclude banned users
-	var u user.User
-	err := r.collection.FindOne(ctx, filter).Decode(&u)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, ErrUserNotFound
-		}
-		return nil, err
-	}
-	// Ensure the user is sanitized before returning
-	sanitizedUser := u.Sanitize()
-
-	return &sanitizedUser, nil
-}
-
-func (r *mongoUserRepository) GetByUsername(ctx context.Context, username string) (*user.SafeUser, error) {
-	filter := bson.M{"username": username, "deleted_at": nil, "roles": bson.M{"$nin": []user.UserRole{user.RoleBanned}}} // Exclude banned users
-	var u user.User
+func (r *mongoUserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	filter := bson.M{"email": email, "deleted_at": nil, "roles": bson.M{"$nin": []models.UserRole{models.RoleBanned}}} // Exclude banned users
+	var u models.User
 	err := r.collection.FindOne(ctx, filter).Decode(&u)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -225,14 +197,24 @@ func (r *mongoUserRepository) GetByUsername(ctx context.Context, username string
 		return nil, err
 	}
 
-	// Ensure the user is sanitized before returning
-	sanitizedUser := u.Sanitize()
+	return &u, nil
+}
 
-	return &sanitizedUser, nil
+func (r *mongoUserRepository) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+	filter := bson.M{"username": username, "deleted_at": nil, "roles": bson.M{"$nin": []models.UserRole{models.RoleBanned}}} // Exclude banned users
+	var u models.User
+	err := r.collection.FindOne(ctx, filter).Decode(&u)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	return &u, nil
 }
 
 func (r *mongoUserRepository) UpdateFields(ctx context.Context, id primitive.ObjectID, fields bson.M) error {
-	//! in service, ensure to call BeforeUpdate on the user model before calling this method
 	filter := bson.M{"_id": id, "deleted_at": nil}
 
 	delete(fields, "_id")
@@ -269,7 +251,7 @@ func (r *mongoUserRepository) Delete(ctx context.Context, id primitive.ObjectID)
 	return nil
 }
 
-func (r *mongoUserRepository) GetUsers(ctx context.Context, offset, limit int) ([]user.SafeUser, int, error) {
+func (r *mongoUserRepository) GetUsers(ctx context.Context, offset, limit int) ([]models.User, int, error) {
 	filter := bson.M{"deleted_at": nil} // Do not exclude banned users here, as we want to return all users except those who are soft-deleted; there is a separate method named GetActiveUsers that excludes banned users
 	opts := options.Find().SetSkip(int64(offset)).SetLimit(int64(limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
 
@@ -278,7 +260,7 @@ func (r *mongoUserRepository) GetUsers(ctx context.Context, offset, limit int) (
 		return nil, 0, err
 	}
 
-	sanitizedUsers, err := decodeAndSanitize(ctx, cursor)
+	users, err := decodeUsers(ctx, cursor)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -288,14 +270,14 @@ func (r *mongoUserRepository) GetUsers(ctx context.Context, offset, limit int) (
 		return nil, 0, err
 	}
 
-	return sanitizedUsers, int(count), nil
+	return users, int(count), nil
 }
 
-func (r *mongoUserRepository) Search(ctx context.Context, query string, offset, limit int) ([]user.SafeUser, int, error) {
+func (r *mongoUserRepository) Search(ctx context.Context, query string, offset, limit int) ([]models.User, int, error) {
 	filter := bson.M{
 		"$text":      bson.M{"$search": query},
 		"deleted_at": nil,
-		"roles":      bson.M{"$nin": []user.UserRole{user.RoleBanned}}, // Exclude banned users
+		"roles":      bson.M{"$nin": []models.UserRole{models.RoleBanned}}, // Exclude banned users
 	}
 	opts := options.Find().SetSkip(int64(offset)).SetLimit(int64(limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
 
@@ -304,7 +286,7 @@ func (r *mongoUserRepository) Search(ctx context.Context, query string, offset, 
 		return nil, 0, err
 	}
 
-	sanitizedUsers, err := decodeAndSanitize(ctx, cursor)
+	users, err := decodeUsers(ctx, cursor)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -314,10 +296,10 @@ func (r *mongoUserRepository) Search(ctx context.Context, query string, offset, 
 		return nil, 0, err
 	}
 
-	return sanitizedUsers, int(count), nil
+	return users, int(count), nil
 }
 
-func (r *mongoUserRepository) GetUsersByRole(ctx context.Context, role user.UserRole, offset, limit int) ([]user.SafeUser, int, error) {
+func (r *mongoUserRepository) GetUsersByRole(ctx context.Context, role models.UserRole, offset, limit int) ([]models.User, int, error) {
 	// validate role in service
 	filter := bson.M{"roles": role, "deleted_at": nil} // no need to exclude banned users since they are already set to RoleBanned and have no other roles
 	opts := options.Find().SetSkip(int64(offset)).SetLimit(int64(limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
@@ -327,7 +309,7 @@ func (r *mongoUserRepository) GetUsersByRole(ctx context.Context, role user.User
 		return nil, 0, err
 	}
 
-	sanitizedUsers, err := decodeAndSanitize(ctx, cursor)
+	users, err := decodeUsers(ctx, cursor)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -337,11 +319,11 @@ func (r *mongoUserRepository) GetUsersByRole(ctx context.Context, role user.User
 		return nil, 0, err
 	}
 
-	return sanitizedUsers, int(count), nil
+	return users, int(count), nil
 }
 
-func (r *mongoUserRepository) GetActiveUsers(ctx context.Context, offset, limit int) ([]user.SafeUser, int, error) {
-	filter := bson.M{"deleted_at": nil, "roles": bson.M{"$nin": []user.UserRole{user.RoleBanned}}} // Exclude banned users
+func (r *mongoUserRepository) GetActiveUsers(ctx context.Context, offset, limit int) ([]models.User, int, error) {
+	filter := bson.M{"deleted_at": nil, "roles": bson.M{"$nin": []models.UserRole{models.RoleBanned}}} // Exclude banned users
 	opts := options.Find().SetSkip(int64(offset)).SetLimit(int64(limit)).SetSort(bson.D{{Key: "created_at", Value: -1}})
 
 	cursor, err := r.collection.Find(ctx, filter, opts)
@@ -349,7 +331,7 @@ func (r *mongoUserRepository) GetActiveUsers(ctx context.Context, offset, limit 
 		return nil, 0, err
 	}
 
-	sanitizedUsers, err := decodeAndSanitize(ctx, cursor)
+	users, err := decodeUsers(ctx, cursor)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -359,7 +341,7 @@ func (r *mongoUserRepository) GetActiveUsers(ctx context.Context, offset, limit 
 		return nil, 0, err
 	}
 
-	return sanitizedUsers, int(count), nil
+	return users, int(count), nil
 }
 
 func (r *mongoUserRepository) Exists(ctx context.Context, id primitive.ObjectID) bool {
@@ -393,9 +375,9 @@ func (r *mongoUserRepository) Count(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (r *mongoUserRepository) CountByRole(ctx context.Context, role user.UserRole) (int64, error) {
-	if !user.IsValidRole(string(role)) {
-		return 0, errors.New("invalid user role")
+func (r *mongoUserRepository) CountByRole(ctx context.Context, role models.UserRole) (int64, error) {
+	if !models.IsValidRole(string(role)) {
+		return 0, ErrInvalidRole
 	}
 
 	filter := bson.M{"roles": role, "deleted_at": nil} // Count only active users with the specified role, excluding soft-deleted users

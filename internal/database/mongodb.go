@@ -27,6 +27,7 @@ func NewMongoDB(cfg *config.Config) (*MongoDB, error) {
 	clientOptions.SetMaxConnIdleTime(30 * time.Second)
 	clientOptions.SetConnectTimeout(10 * time.Second) 
 	clientOptions.SetServerSelectionTimeout(5 * time.Second) 
+	clientOptions.SetRegistry(mongoRegistry) // Use the custom BSON registry for UUID support
 
 	clientOptions.SetReadPreference(readpref.Primary())
 

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify your email – Paccy</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background: #f4f6fb;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #22223b;
+    "
+  >
+    <table
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      border="0"
+      style="background: #f4f6fb; padding: 0; margin: 0"
+    >
+      <tr>
+        <td align="center">
+          <table
+            width="520"
+            cellpadding="0"
+            cellspacing="0"
+            border="0"
+            style="
+              background: #fff;
+              border-radius: 16px;
+              box-shadow: 0 4px 24px 0 rgba(80, 112, 255, 0.08);
+              padding: 40px 32px 32px 32px;
+              border: 1px solid #e0e7ef;
+              max-width: 520px;
+            "
+          >
+            <tr>
+              <td align="center" style="padding-bottom: 18px">
+                <img
+                  src="https://www.paccy.io/assets/paccy.png"
+                  alt="Paccy Logo"
+                  width="64"
+                  height="64"
+                  style="
+                    border-radius: 12px;
+                    box-shadow: 0 2px 8px 0 rgba(80, 112, 255, 0.1);
+                    background: #fff;
+                    display: block;
+                    margin-bottom: 12px;
+                  "
+                />
+                <h1
+                  style="
+                    color: #4f46e5;
+                    font-size: 26px;
+                    font-weight: 700;
+                    margin: 0 0 4px 0;
+                    letter-spacing: -1px;
+                  "
+                >
+                  Welcome to Paccy 👋
+                </h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size: 18px; color: #22223b; padding-bottom: 12px">
+                Hi {{.Username}},
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size: 16px; color: #444; padding-bottom: 24px">
+                Thank you for signing up with <strong>Paccy</strong>.<br />
+                To complete your registration, please verify your email address
+                by clicking the button below:
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 24px 0 18px 0">
+                <a
+                  href="{{.Link}}"
+                  target="_blank"
+                  style="
+                    display: inline-block;
+                    padding: 16px 36px;
+                    background: linear-gradient(
+                      90deg,
+                      #4f46e5 0%,
+                      #6366f1 100%
+                    );
+                    color: #fff !important;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-size: 18px;
+                    font-weight: 600;
+                    box-shadow: 0 2px 8px 0 rgba(80, 112, 255, 0.1);
+                    transition: background 0.2s;
+                  "
+                  >Verify Email</a
+                >
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size: 14px; color: #888; padding-bottom: 0">
+                If you didn't sign up for Paccy, you can safely ignore this
+                email.
+              </td>
+            </tr>
+            <tr>
+              <td
+                align="center"
+                style="
+                  padding-top: 32px;
+                  font-size: 13px;
+                  color: #a0aec0;
+                  letter-spacing: 0.2px;
+                "
+              >
+                © {{.Year}} Paccy.io – All rights reserved.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -1,0 +1,27 @@
+package errors
+
+import (
+	"errors"
+)
+
+var (
+	ErrInvalidInput        = errors.New("invalid or missing input")
+	ErrUserBanned          = errors.New("user is banned")
+	ErrUserNotVerified     = errors.New("user is not verified")
+	ErrTermsNotAccepted    = errors.New("terms of service not accepted")
+	ErrUnexpected          = errors.New("unexpected error occurred")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrUserExists          = errors.New("user already exists")
+	ErrInvalidCredentials  = errors.New("invalid credentials")
+	ErrInvalidRole         = errors.New("invalid user role")
+	ErrInvalidQuery        = errors.New("search query must be at least 3 characters long")
+	ErrProjectQuotaExists  = errors.New("project quota already exists")
+	ErrNoProjectQuotaFound = errors.New("no project quota found")
+	ErrNoActiveProvider    = errors.New("no active provider found")
+	ErrInvalidProviderType = errors.New("invalid provider type")
+	ErrResetNeeded         = errors.New("reset needed for the provider")
+	ErrNoUserQuotaFound    = errors.New("no user quota found")
+	ErrUserQuotaExists     = errors.New("user quota already exists")
+	ErrInvalidTemplateName = errors.New("invalid template name")
+	ErrTemplateRendering   = errors.New("error rendering template")
+)
