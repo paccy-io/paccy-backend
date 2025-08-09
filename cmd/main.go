@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"os"
 
 	"time"
 
@@ -16,6 +18,11 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
+	// check env variables and print them
+	fmt.Println("env", os.Getenv("NOTIFY_ADMIN_GMAIL_SMTP_USERNAME"))
+
+	//print all env variables
+	fmt.Println("All environment variables:", os.Environ())
 	// Initilialize JWT provider
 	// seconds to time.Duration
 	expIn := time.Duration(cfg.JWT.ExpiresIn) * time.Second
