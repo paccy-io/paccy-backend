@@ -69,7 +69,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	// Auth routes
 	public.Get("/verify", authHandler.VerifyToken)
 	public.Post("/verify-email/:token", authHandler.VerifyEmail)
-	public.Post("/send-verification", authHandler.SendEmailVerification)
+	public.Post("/send-verification/:userID", authHandler.SendEmailVerification)
 	public.Post("/", authHandler.RegisterAndSendVerification)
 	public.Post("/login", authHandler.Login)
 
@@ -78,6 +78,6 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	public.Post("/notify/quota", notificationHandler.CreateProjectQuota)
 
 	// User routes
-//	public.Get("/:id", userHandler.GetUser)
+	//	public.Get("/:id", userHandler.GetUser)
 
 }
