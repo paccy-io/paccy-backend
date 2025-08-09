@@ -21,6 +21,7 @@ func main() {
 	// check env variables and print them
 	fmt.Println("env", os.Getenv("NOTIFY_ADMIN_GMAIL_SMTP_USERNAME"))
 	fmt.Println("mongo", os.Getenv("DATABASE_URI"), cfg.GetDatabaseURI())
+	fmt.Println("last version")
 
 	//print all env variables
 	// Initilialize JWT provider
