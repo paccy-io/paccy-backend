@@ -22,7 +22,6 @@ func main() {
 	fmt.Println("env", os.Getenv("NOTIFY_ADMIN_GMAIL_SMTP_USERNAME"))
 
 	//print all env variables
-	fmt.Println("All environment variables:", os.Environ())
 	// Initilialize JWT provider
 	// seconds to time.Duration
 	expIn := time.Duration(cfg.JWT.ExpiresIn) * time.Second
