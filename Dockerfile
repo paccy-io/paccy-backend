@@ -36,7 +36,7 @@ COPY --from=builder /app/main .
 
 # Copy any necessary files (like templates, configs, etc.)
 COPY --from=builder /app/internal/notify/templates ./internal/notify/templates
-COPY --from=builder /app/cmd/.env ./cmd/.env
+# COPY --from=builder /app/cmd/.env ./cmd/.env
 
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /root
