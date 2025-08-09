@@ -243,8 +243,12 @@ func (cfg *Config) GetGmailSmtpQuota() Quota {
 }
 
 func init() {
-	err := godotenv.Load("cmd/.env")
-	if err != nil {
-		log.Println("No .env file found or error reading it:", err)
+	// Only load .env file in development (when not in Azure/production)
+	// Azure App Service provides environment variables directly
+	if os.Getenv("APP_ENVIRONMENT") != "production" && os.Getenv("AZURE_CLIENT_ID") == "" {
+		err := godotenv.Load("cmd/.env")
+		if err != nil {
+			log.Println("No .env file found or error reading it (this is normal in production):", err)
+		}
 	}
 }
