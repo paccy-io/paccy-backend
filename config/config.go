@@ -177,9 +177,6 @@ func getEnvAsInt(key string, defaultValue int) int {
 }
 
 func (cfg *Config) GetDatabaseURI() string {
-	if cfg == nil || cfg.Database.URI == "" {
-		return "mongodb://localhost:27017" // default URI if not set
-	}
 	return cfg.Database.URI
 }
 
