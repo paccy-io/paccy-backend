@@ -30,7 +30,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         push: true
-        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_646c460d1f73408a93537617258e03a8 }}/noirr/paccy-backend:${{ github.sha }}
+        tags: index.docker.io/${{ secrets.AzureAppService_ContainerUsername_646c460d1f73408a93537617258e03a8 }}/paccy-backend:${{ github.sha }}
         file: ./Dockerfile
 
   deploy:
@@ -48,4 +48,4 @@ jobs:
         app-name: 'paccy'
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_f5f552664a2c43f2aed3a9145de71699 }}
-        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_646c460d1f73408a93537617258e03a8 }}/noirr/paccy-backend:${{ github.sha }}'
+        images: 'index.docker.io/${{ secrets.AzureAppService_ContainerUsername_646c460d1f73408a93537617258e03a8 }}/paccy-backend:${{ github.sha }}'
