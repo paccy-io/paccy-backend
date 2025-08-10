@@ -8,26 +8,32 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/paccy-io/paccy-backend/internal/auth"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	responses "github.com/paccy-io/paccy-backend/pkg/response"
 
-	//"github.com/paccy-io/paccy-backend/internal/user/dto"
 	authDto "github.com/paccy-io/paccy-backend/internal/auth/dto"
 	"github.com/paccy-io/paccy-backend/internal/user/dto"
 )
 
 type AuthHandler struct {
 	authService auth.AuthService
+	log         *logger.Logger
 }
 
 func NewAuthHandler(authService auth.AuthService) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		log:         logger.Auth(),
 	}
 }
 
 func (h *AuthHandler) RegisterAndSendVerification(c *fiber.Ctx) error {
+	requestID := c.Locals("request_id").(string)
+	logCtx := h.log.WithRequestID(requestID)
+
 	dtoUser := new(dto.CreateUserDTO)
 	if err := c.BodyParser(dtoUser); err != nil {
+		logCtx.WithError(err).Error("Failed to parse request body for user registration")
 		return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to parse request body: %v", err),
@@ -35,19 +41,23 @@ func (h *AuthHandler) RegisterAndSendVerification(c *fiber.Ctx) error {
 		})
 	}
 
+	logCtx.WithField("email", dtoUser.Email).Info("Attempting user registration")
+
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
 	defer cancel()
 
 	bool, err := h.authService.RegisterAndSendVerification(ctx, dtoUser)
 	if err != nil {
 		if bool {
+			logCtx.WithError(err).WithField("email", dtoUser.Email).Warn("User registered but email verification failed")
 			return c.Status(fiber.StatusOK).JSON(responses.APIResponse{
 				Success: true,
 				Error:   fmt.Sprintf("Failed to send email verification: %v", err),
 				Message: "User registered but sending email verification failed",
 			})
 		} else {
-			return c.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+			logCtx.WithError(err).WithField("email", dtoUser.Email).Error("User registration failed")
+			return c.Status(fiber.ErrBadRequest.Code).JSON(responses.ErrorResponse{
 				Success: false,
 				Error:   fmt.Sprintf("Failed to register: %v", err),
 				Code:    fiber.StatusInternalServerError,
@@ -55,6 +65,7 @@ func (h *AuthHandler) RegisterAndSendVerification(c *fiber.Ctx) error {
 		}
 	}
 
+	logCtx.WithField("email", dtoUser.Email).Info("User registered and verification email sent successfully")
 	return c.Status(fiber.StatusOK).JSON(responses.APIResponse{
 		Success: true,
 		Message: "User registered successfully",
@@ -133,10 +144,12 @@ func (h *AuthHandler) SendEmailVerification(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
-	// print all params
-	fmt.Println("Params:", c.Params("token"))
+	requestID := c.Locals("request_id").(string)
+	logCtx := h.log.WithRequestID(requestID)
+
 	token := c.Params("token")
 	if token == "" {
+		logCtx.Warn("Email verification attempted without token")
 		return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Success: false,
 			Error:   "Token is required",
@@ -144,11 +157,14 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 		})
 	}
 
+	logCtx.WithField("token_length", len(token)).Info("Attempting email verification")
+
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
 	defer cancel()
 
 	err := h.authService.VerifyEmail(ctx, token)
 	if err != nil {
+		logCtx.WithError(err).Error("Email verification failed")
 		return c.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
 			Success: false,
 			Error:   fmt.Sprintf("Failed to verify email: %v", err),
@@ -156,6 +172,7 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 		})
 	}
 
+	logCtx.Info("Email verified successfully")
 	return c.Status(fiber.StatusOK).JSON(responses.APIResponse{
 		Success: true,
 		Message: "Email verified successfully",

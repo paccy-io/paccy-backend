@@ -3,14 +3,13 @@ package user
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/paccy-io/paccy-backend/internal/user/dto"
 	"github.com/paccy-io/paccy-backend/internal/user/models"
 	. "github.com/paccy-io/paccy-backend/pkg/errors"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	. "github.com/paccy-io/paccy-backend/pkg/models"
 	. "github.com/paccy-io/paccy-backend/pkg/utils"
 )
@@ -55,22 +54,28 @@ type UserService interface {
 type userService struct {
 	repo     UserRepository
 	validate *validator.Validate
+	log      *logger.Logger
 }
 
 func NewUserService(repo UserRepository, validate *validator.Validate) UserService {
-	return &userService{repo: repo, validate: validate}
+	return &userService{
+		repo:     repo,
+		validate: validate,
+		log:      logger.User(),
+	}
 }
 
 func (s *userService) Create(ctx context.Context, user *dto.CreateUserDTO) (*models.SafeUser, error) {
-	fmt.Println("Creating user:", user)
+	s.log.WithField("email", user.Email).WithField("username", user.Username).Info("Creating user")
+
 	if err := s.validate.Struct(user); err != nil {
-		fmt.Println("Validation error:", err)
+		s.log.WithError(err).WithField("email", user.Email).Error("User validation failed")
 		return nil, ErrInvalidInput
 	}
 
 	password, err := HashPassword(user.Password)
 	if err != nil {
-		log.Printf("Error hashing password: %v", err) //TODO: Use a proper logging framework
+		s.log.WithError(err).Error("Password hashing failed")
 		return nil, ErrUnexpected
 	}
 
@@ -89,29 +94,38 @@ func (s *userService) Create(ctx context.Context, user *dto.CreateUserDTO) (*mod
 
 	createdUser, err := s.repo.Create(ctx, modelUser)
 	if err != nil {
+		s.log.WithError(err).WithField("email", user.Email).Error("Failed to create user in database")
 		return nil, err
 	}
+
+	s.log.WithUserID(createdUser.ID.Hex()).WithField("email", user.Email).Info("User created successfully")
 
 	return createdUser.ToSafe(), nil
 }
 
 func (s *userService) GetByID(ctx context.Context, id string) (*models.SafeUser, error) {
+	logCtx := s.log.WithField("userID", id)
+	logCtx.Debug("Getting user by ID")
+
 	idObj, err := ValidateObjectID(id, s.validate)
 	if err != nil {
+		logCtx.WithError(err).Error("Invalid user ID")
 		return nil, ErrInvalidInput
 	}
 
 	user, err := s.repo.GetByID(ctx, idObj)
 	if err != nil {
+		logCtx.WithError(err).Error("Failed to get user from database")
 		return nil, err
 	}
 
 	if user.IsUserBanned() {
+		logCtx.Warn("Attempted to get banned user")
 		return nil, ErrUserBanned
 	}
 
+	logCtx.WithField("email", user.Email).Debug("User retrieved successfully")
 	return user.ToSafe(), nil
-
 }
 
 func (s *userService) GetByUUID(ctx context.Context, uuid string) (*models.SafeUser, error) {
@@ -133,23 +147,31 @@ func (s *userService) GetByUUID(ctx context.Context, uuid string) (*models.SafeU
 }
 
 func (s *userService) GetByEmail(ctx context.Context, email string) (*models.SafeUser, error) {
+	logCtx := s.log.WithField("email", email)
+	logCtx.Debug("Getting user by email")
+
 	if err := ValidateEmail(email, s.validate); err != nil {
+		logCtx.WithError(err).Error("Invalid email format")
 		return nil, ErrInvalidInput
 	}
 
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
+		logCtx.WithError(err).Error("Failed to get user by email")
 		return nil, ErrUserNotFound
 	}
 
 	if user.IsUserBanned() {
+		logCtx.WithUserID(user.ID.Hex()).Warn("Attempted to get banned user")
 		return nil, ErrUserBanned
 	}
 
 	if user.VerificationLevel < models.EmailVerified {
+		logCtx.WithUserID(user.ID.Hex()).Warn("Attempted to get unverified user")
 		return nil, ErrUserNotVerified
 	}
 
+	logCtx.WithUserID(user.ID.Hex()).Debug("User retrieved successfully")
 	return user.ToSafe(), nil
 }
 
@@ -177,22 +199,35 @@ func (s *userService) GetByUsername(ctx context.Context, username string) (*mode
 
 // update user verification level
 func (s *userService) UpdateUserVerificationLevel(ctx context.Context, id string, level models.VerificationLevel) error {
+	logCtx := s.log.WithField("userID", id).WithField("verificationLevel", level)
+	logCtx.Info("Updating user verification level")
+
 	idObj, err := ValidateObjectID(id, s.validate)
 	if err != nil {
+		logCtx.WithError(err).Error("Invalid user ID")
 		return ErrInvalidInput
 	}
 
 	user, err := s.repo.GetByID(ctx, idObj)
 	if err != nil {
+		logCtx.WithError(err).Error("Failed to get user for verification level update")
 		return ErrUserNotFound
 	}
 
+	oldLevel := user.VerificationLevel
 	user.VerificationLevel = level
 	user.BeforeUpdate()
 
-	return s.repo.UpdateFields(ctx, idObj, map[string]interface{}{
+	err = s.repo.UpdateFields(ctx, idObj, map[string]interface{}{
 		"verification_level": level,
 	})
+	if err != nil {
+		logCtx.WithError(err).Error("Failed to update verification level in database")
+		return err
+	}
+
+	logCtx.WithField("oldLevel", oldLevel).WithField("newLevel", level).WithField("email", user.Email).Info("User verification level updated successfully")
+	return nil
 }
 
 func (s *userService) UpdateUserFields(ctx context.Context, id string, fields *dto.UpdateUserDTO) error {
@@ -423,30 +458,39 @@ func (s *userService) GetActiveUsers(ctx context.Context, offset, limit int) ([]
 }
 
 func (s *userService) VerifyPassword(ctx context.Context, email, password string) (models.SafeUser, bool, error) {
+	logCtx := s.log.WithField("email", email)
+	logCtx.Debug("Verifying user password")
+
 	// validate email
 	if err := s.validate.Var(email, "required,email"); err != nil {
+		logCtx.WithError(err).Error("Invalid email format for password verification")
 		return models.SafeUser{}, false, ErrInvalidInput
 	}
 
 	// validate password
 	if err := s.validate.Var(password, "required,min=8"); err != nil {
+		logCtx.WithError(err).Error("Invalid password format for verification")
 		return models.SafeUser{}, false, ErrInvalidInput
 	}
 
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
+		logCtx.WithError(err).Error("Failed to get user for password verification")
 		return models.SafeUser{}, false, ErrUserNotFound
 	}
 
 	verified := VerifyPassword(user.Password, password)
 
 	if !verified {
+		logCtx.WithUserID(user.ID.Hex()).Warn("Password verification failed")
 		return models.SafeUser{}, false, nil
 	}
 
 	if user.VerificationLevel < models.EmailVerified {
+		logCtx.WithUserID(user.ID.Hex()).Warn("Password verified but user not email verified")
 		return models.SafeUser{}, false, ErrUserNotVerified
 	}
-	return *user.ToSafe(), true, nil
 
+	logCtx.WithUserID(user.ID.Hex()).Info("Password verified successfully")
+	return *user.ToSafe(), true, nil
 }

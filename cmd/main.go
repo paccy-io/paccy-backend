@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
-
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,20 +9,13 @@ import (
 	"github.com/paccy-io/paccy-backend/config"
 	"github.com/paccy-io/paccy-backend/internal/auth/jwt"
 	"github.com/paccy-io/paccy-backend/internal/database"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	"github.com/paccy-io/paccy-backend/pkg/stats"
 )
 
 func main() {
 	cfg := config.LoadConfig()
 
-	// check env variables and print them
-	fmt.Println("env2", os.Getenv("NOTIFY_ADMIN_GMAIL_SMTP_USERNAME"))
-	fmt.Println("mongo", os.Getenv("DATABASE_URI"), cfg.GetDatabaseURI())
-	fmt.Println("last version")
-
-	//print all env variables
-	// Initilialize JWT provider
-	// seconds to time.Duration
 	expIn := time.Duration(cfg.JWT.ExpiresIn) * time.Second
 	jwtProvider := jwt.NewJWTProvider(cfg.JWT.SecretKey, expIn, cfg.JWT.Issuer)
 	mongoDB, err := database.NewMongoDB(cfg)
@@ -51,6 +41,12 @@ func main() {
 	api := app.Group("/api")
 	routes.SetupRoutes(api, mongoDB.GetDatabase(), jwtProvider, cfg)
 
-	log.Fatal(app.Listen(":3000"))
+	// Send startup notification to Discord
+	logger.SendStartupNotification(cfg.App.Name, cfg.App.Version, cfg.App.Environment, cfg.Server.Port)
+
+	serverLogger := logger.Server()
+	serverLogger.WithField("port", cfg.Server.Port).WithField("environment", cfg.App.Environment).Info("Starting server")
+
+	log.Fatal(app.Listen(":" + cfg.Server.Port))
 
 }

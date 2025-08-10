@@ -3,7 +3,9 @@ package routes
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/paccy-io/paccy-backend/api/handlers"
+	"github.com/paccy-io/paccy-backend/api/middleware"
 	"github.com/paccy-io/paccy-backend/config"
 	"github.com/paccy-io/paccy-backend/internal/auth"
 	"github.com/paccy-io/paccy-backend/internal/auth/jwt"
@@ -16,6 +18,15 @@ import (
 )
 
 func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider, cfg *config.Config) {
+	// Add logging middleware
+	api.Use(middleware.RequestIDMiddleware())
+	api.Use(middleware.LoggerMiddleware())
+	api.Use(cors.New(cors.Config{
+    AllowOrigins: "https://paccy.io, https://www.paccy.io, http://localhost:3000",
+    AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+    AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+}))
+
 	// Initialize repositories
 	s1, s2, s3 := cfg.GetUserNotificationQuota()
 
@@ -62,6 +73,14 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 			DailyQuota:   cfg.GetGmailSmtpQuota().DailyQuota,
 			MonthlyQuota: cfg.GetGmailSmtpQuota().MonthlyQuota,
 		},
+	})
+
+	// check the host name, if it is from https://paccy.azurewebsites.net/* then redirect to https://api.paccy.io/*
+	api.Use(func(c *fiber.Ctx) error {
+		if c.Hostname() == "paccy.azurewebsites.net" {
+			return c.Redirect("https://api.paccy.io"+c.OriginalURL(), fiber.StatusMovedPermanently)
+		}
+		return c.Next()
 	})
 
 	public := api.Group("/")

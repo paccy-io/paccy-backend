@@ -3,6 +3,9 @@ package config
 import (
 	"os"
 	"strconv"
+
+	"github.com/joho/godotenv"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 )
 
 type Config struct {
@@ -38,10 +41,11 @@ type JWTConfig struct {
 }
 
 type AppConfig struct {
-	Name         string
-	Version      string
-	Environment  string
-	LoggingLevel string
+	Name              string
+	Version           string
+	Environment       string
+	LoggingLevel      string
+	DiscordWebhookURL string
 }
 
 // argon2id parameters
@@ -89,8 +93,9 @@ type UserNotifyQuotaConfig struct {
 	NotificationQuota int
 }
 
-func LoadConfig() *Config { // LoadConfig function initializes and returns a pointer!! to Config struct
-	return &Config{ // returns the pointer of itself
+func LoadConfig() *Config {
+	// Create config first to get log level and environment
+	cfg := &Config{
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "3000"),
 			Host: getEnv("SERVER_HOST", "localhost"),
@@ -109,10 +114,11 @@ func LoadConfig() *Config { // LoadConfig function initializes and returns a poi
 			Issuer:    getEnv("JWT_ISSUER", "paccy"),         // main issuer, but in-app auth providers can have their own issuers (ex: auth-service)
 		},
 		App: AppConfig{
-			Name:         getEnv("APP_NAME", "Paccy"),
-			Version:      getEnv("APP_VERSION", "1.0.0"),
-			Environment:  getEnv("APP_ENVIRONMENT", "development"),
-			LoggingLevel: getEnv("APP_LOGGING_LEVEL", "info"),
+			Name:              getEnv("APP_NAME", "Paccy"),
+			Version:           getEnv("APP_VERSION", "1.0.0"),
+			Environment:       getEnv("APP_ENVIRONMENT", "development"),
+			LoggingLevel:      getEnv("APP_LOGGING_LEVEL", "info"),
+			DiscordWebhookURL: getEnv("DISCORD_WEBHOOK_URL", ""),
 		},
 		Hashing: HashingConfig{
 			Algorithm:   getEnv("HASHING_ALGORITHM", "argon2id"),
@@ -154,6 +160,14 @@ func LoadConfig() *Config { // LoadConfig function initializes and returns a poi
 			},
 		},
 	}
+
+	// Initialize logger with config values
+	logger.Initialize(cfg.App.LoggingLevel, cfg.App.Environment, cfg.App.DiscordWebhookURL)
+
+	configLogger := logger.Config()
+	configLogger.Info("Configuration loaded successfully")
+
+	return cfg
 }
 
 func getEnv(key string, defaultValue string) string {
@@ -234,4 +248,16 @@ func (cfg *Config) GetGmailSmtpQuota() Quota {
 		return Quota{}
 	}
 	return cfg.Notify.Project.GmailSmtpQuota
+}
+
+func init() {
+	// Only load .env file in development (when not in Azure/production)
+	// Azure App Service provides environment variables directly
+	if os.Getenv("APP_ENVIRONMENT") != "production" && os.Getenv("AZURE_CLIENT_ID") == "" {
+		err := godotenv.Load("cmd/.env")
+		if err != nil {
+			// Don't use logger here as it's not initialized yet
+			// log.Println("No .env file found or error reading it (this is normal in production):", err)
+		}
+	}
 }
