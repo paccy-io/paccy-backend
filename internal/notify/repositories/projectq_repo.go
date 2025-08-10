@@ -2,11 +2,11 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/paccy-io/paccy-backend/internal/notify/dto"
 	"github.com/paccy-io/paccy-backend/internal/notify/models"
 	. "github.com/paccy-io/paccy-backend/pkg/errors"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -36,10 +36,12 @@ func NewMongoProjectQuotaRepository(db *mongo.Database, projectName string) Proj
 }
 
 func (r *mongoProjectQuotaRepository) CreateProjectQuota(ctx context.Context, quota *dto.QuotaDTO) error {
+	log := logger.Notify()
+
 	// check if the project quota already exists
 	existingProjectQuota, err := r.GetProjectQuota(ctx)
 	if err != nil && err != ErrNoProjectQuotaFound {
-		fmt.Println("Error checking existing project quota:", err)
+		log.WithError(err).Error("Error checking existing project quota")
 		return ErrUnexpected
 	}
 
@@ -47,7 +49,7 @@ func (r *mongoProjectQuotaRepository) CreateProjectQuota(ctx context.Context, qu
 	if existingProjectQuota != nil {
 		return ErrProjectQuotaExists
 	}
-	fmt.Println("Creating new project quota with default values")
+	log.Info("Creating new project quota with default values")
 
 	model := &models.ProjectQuota{
 		ProjectName: r.projectName,
@@ -59,7 +61,7 @@ func (r *mongoProjectQuotaRepository) CreateProjectQuota(ctx context.Context, qu
 	_, err = r.collection.InsertOne(ctx, model)
 
 	if err != nil {
-		fmt.Println("Error inserting new project quota:", err)
+		log.WithError(err).Error("Error inserting new project quota")
 		return ErrUnexpected
 	}
 
@@ -111,7 +113,7 @@ func (r *mongoProjectQuotaRepository) GetActiveQuota(ctx context.Context) (*mode
 	var activeQuota *models.BaseProviderQuota
 
 	switch activeProvider {
-case projectQuota.Resender.ProviderType:
+	case projectQuota.Resender.ProviderType:
 		activeQuota = &projectQuota.Resender
 	case projectQuota.GmailSmtp.ProviderType:
 		activeQuota = &projectQuota.GmailSmtp
@@ -154,7 +156,7 @@ func (r *mongoProjectQuotaRepository) IncreaseUsage(ctx context.Context) error {
 		return ErrNoActiveProvider
 	}
 	switch providerQuota {
-case models.ProviderTypeResender:
+	case models.ProviderTypeResender:
 		quota.Resender.IncreaseUsage()
 	case models.ProviderTypeGmailSmtp:
 		quota.GmailSmtp.IncreaseUsage()

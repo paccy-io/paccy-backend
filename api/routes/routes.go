@@ -85,6 +85,9 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 
 	public := api.Group("/")
 	// Auth routes
+	public.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("Welcome to the Paccy API")
+	})
 	public.Get("/verify", authHandler.VerifyToken)
 	public.Post("/verify-email/:token", authHandler.VerifyEmail)
 	public.Post("/send-verification/:userID", authHandler.SendEmailVerification)
@@ -97,6 +100,8 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 
 	// User routes
 	public.Get("/users", userHandler.GetUsers)
-	public.Get("/users/:id", userHandler.GetUser)
+
+	// Protected user routes (require JWT + user ID validation)
+	public.Get("/users/:userID", middleware.CombinedJWTUserIDMiddleware(authService), userHandler.GetUser)
 
 }

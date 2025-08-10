@@ -1,11 +1,10 @@
 package handlers
 
 import (
-	"fmt"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/paccy-io/paccy-backend/internal/notify"
 	"github.com/paccy-io/paccy-backend/internal/notify/dto"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	responses "github.com/paccy-io/paccy-backend/pkg/response"
 )
 
@@ -34,7 +33,8 @@ func (h *NotificationHandler) SendNotification(c *fiber.Ctx) error {
 
 	err = h.notifyService.SendNotification(c.Context(), &user)
 	if err != nil {
-		fmt.Println("Error sending notification:", err)
+		log := logger.Notify()
+		log.WithError(err).Error("Failed to send notification")
 		return c.Status(fiber.StatusInternalServerError).JSON(responses.APIResponse{
 			Success: false,
 			Message: "Failed to send notification",
@@ -49,7 +49,8 @@ func (h *NotificationHandler) SendNotification(c *fiber.Ctx) error {
 func (h *NotificationHandler) CreateProjectQuota(c *fiber.Ctx) error {
 	err := h.notifyService.CreateProjectQuota(c.Context(), &h.quota)
 	if err != nil {
-		fmt.Println("Error creating project quota:", err)
+		log := logger.Notify()
+		log.WithError(err).Error("Failed to create project quota")
 		return c.Status(fiber.StatusInternalServerError).JSON(responses.APIResponse{
 			Success: false,
 			Message: "Failed to create project quota",

@@ -1,24 +1,24 @@
 package stats
 
 import (
-	"fmt"
 	"runtime"
 	"time"
+
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 )
 
 // Başka yerden sadece bu fonksiyon çağrılacak
 func StartMemoryLogger(interval time.Duration) {
+	log := logger.Server()
 	ticker := time.NewTicker(interval)
 	for range ticker.C {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 
-		fmt.Printf("[RAM] %s | Alloc: %d KB | TotalAlloc: %d KB | Sys: %d KB | GC: %d\n",
-			time.Now().Format("2006-01-02 15:04:05"),
-			m.Alloc/1024,
-			m.TotalAlloc/1024,
-			m.Sys/1024,
-			m.NumGC,
-		)
+		log.WithField("alloc_kb", m.Alloc/1024).
+			WithField("total_alloc_kb", m.TotalAlloc/1024).
+			WithField("sys_kb", m.Sys/1024).
+			WithField("gc_count", m.NumGC).
+			Info("Memory statistics")
 	}
 }

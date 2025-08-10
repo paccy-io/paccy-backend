@@ -12,6 +12,7 @@ import (
 	//"github.com/paccy-io/paccy-backend/internal/user/dto"
 	"github.com/paccy-io/paccy-backend/internal/user/models"
 	. "github.com/paccy-io/paccy-backend/pkg/errors"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	model "github.com/paccy-io/paccy-backend/pkg/models"
 	responses "github.com/paccy-io/paccy-backend/pkg/response"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -75,21 +76,27 @@ func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
-	id := c.Params("id")
+	id := c.Params("userID")
+
+	// Add debug logging
+	log := logger.User()
+	log.WithField("user_id", id).Info("GetUser handler called")
 
 	var _user *models.SafeUser
 	var err error
-
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
 	defer cancel()
 
 	if _, objErr := primitive.ObjectIDFromHex(id); objErr == nil {
 		// Get user by MongoDB ObjectID
+		log.Info("Getting user by ObjectID")
 		_user, err = h.userService.GetByID(ctx, id)
 	} else if _, uuidErr := uuid.Parse(id); uuidErr == nil {
 		// Get user by UUID
+		log.Info("Getting user by UUID")
 		_user, err = h.userService.GetByUUID(ctx, id)
 	} else {
+		log.Error("Invalid user ID format")
 		return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
 			Success: false,
 			Error:   "Invalid user ID format",
@@ -98,6 +105,7 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	}
 
 	if err != nil {
+		log.WithError(err).Error("Error retrieving user")
 		if err == ErrUserNotFound {
 			return c.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
 				Success: false,
@@ -112,12 +120,15 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 		})
 	}
 
+	log.WithField("user_found", _user != nil).Info("User retrieved successfully, preparing response")
+
 	response := responses.SuccessResponse{
 		Success: true,
 		Message: "User retrieved successfully",
 		Data:    _user,
 	}
 
+	log.Info("About to return response")
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 

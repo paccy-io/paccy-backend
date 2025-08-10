@@ -1,12 +1,12 @@
 package jwt
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/paccy-io/paccy-backend/internal/user/models"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -73,7 +73,8 @@ func (p *jwtProvider) VerifyToken(tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// İmzalama yöntemi kontrolü
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			fmt.Println("VerifyToken error: unexpected signing method")
+			log := logger.Auth()
+			log.Error("VerifyToken error: unexpected signing method")
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return []byte(p.secret), nil

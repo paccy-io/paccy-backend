@@ -3,7 +3,6 @@ package user
 import (
 	"context"
 
-	"fmt"
 	"log"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/paccy-io/paccy-backend/internal/user/models"
 
 	. "github.com/paccy-io/paccy-backend/pkg/errors"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -143,7 +143,8 @@ func (r *mongoUserRepository) Create(ctx context.Context, user *models.User) (*m
 
 	result, err := r.collection.InsertOne(ctx, user)
 	if err != nil {
-		fmt.Println("Error inserting user:", err)
+		log := logger.User()
+		log.WithError(err).Error("Error inserting user")
 		if mongo.IsDuplicateKeyError(err) {
 			return nil, ErrUserExists
 		}

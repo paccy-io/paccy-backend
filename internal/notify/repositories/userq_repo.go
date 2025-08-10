@@ -2,11 +2,11 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/paccy-io/paccy-backend/internal/notify/dto"
 	"github.com/paccy-io/paccy-backend/internal/notify/models"
 	. "github.com/paccy-io/paccy-backend/pkg/errors"
+	"github.com/paccy-io/paccy-backend/pkg/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -82,12 +82,14 @@ func (r *mongoUserQuotaRepository) IncreaseUserUsage(ctx context.Context, userID
 			// Create a new user quota with default values if it doesn't exist
 			err = r.CreateUserQuota(ctx, userID)
 			if err != nil {
-				fmt.Println("Error creating user quota INLINE!:", err)
+				log := logger.Notify()
+				log.WithError(err).Error("Error creating user quota INLINE")
 				return ErrUnexpected
 			}
 			userQuota, _ = r.GetUserQuota(ctx, userID) // re-fetch the newly created quota
 		} else {
-			fmt.Println("Error getting user quota OUTLINE!:", err)
+			log := logger.Notify()
+			log.WithError(err).Error("Error getting user quota OUTLINE")
 			return ErrUnexpected
 		}
 	}
@@ -108,7 +110,8 @@ func (r *mongoUserQuotaRepository) IncreaseUserUsage(ctx context.Context, userID
 	boolean := baseQuota.IncrementUsage()
 
 	if !boolean {
-		fmt.Println("Error incrementing usage for quota type:", quotaType)
+		log := logger.Notify()
+		log.WithField("quota_type", quotaType).Error("Error incrementing usage for quota type")
 		return ErrUnexpected
 	}
 
