@@ -22,10 +22,10 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	api.Use(middleware.RequestIDMiddleware())
 	api.Use(middleware.LoggerMiddleware())
 	api.Use(cors.New(cors.Config{
-    AllowOrigins: "https://paccy.io, https://www.paccy.io, http://localhost:3000",
-    AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
-    AllowHeaders: "Origin, Content-Type, Accept, Authorization",
-}))
+		AllowOrigins: "https://paccy.io, https://www.paccy.io, http://localhost:3000",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+	}))
 
 	// Initialize repositories
 	s1, s2, s3 := cfg.GetUserNotificationQuota()
@@ -84,7 +84,6 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	})
 
 	public := api.Group("/")
-	public.Get("/", userHandler.GetUsers)
 	// Auth routes
 	public.Get("/verify", authHandler.VerifyToken)
 	public.Post("/verify-email/:token", authHandler.VerifyEmail)
@@ -97,6 +96,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	public.Post("/notify/quota", notificationHandler.CreateProjectQuota)
 
 	// User routes
-	//	public.Get("/:id", userHandler.GetUser)
+	public.Get("/users", userHandler.GetUsers)
+	public.Get("/users/:id", userHandler.GetUser)
 
 }
