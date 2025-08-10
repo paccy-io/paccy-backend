@@ -5,11 +5,13 @@ This project includes Discord webhook integration for real-time monitoring and n
 ## Features
 
 ### 🚨 **Automatic Error Alerts**
+
 - All ERROR and FATAL level logs are automatically sent to Discord
 - Rich embeds with error context, user IDs, and system information
 - Color-coded alerts (red for errors, dark red for fatal)
 
 ### 🚀 **Startup Notifications**
+
 - Automatic notification when the application starts/restarts
 - Includes deployment information:
   - Application version
@@ -19,6 +21,7 @@ This project includes Discord webhook integration for real-time monitoring and n
   - Startup timestamp
 
 ### 👤 **User Registration Notifications**
+
 - Automatic notification when new users register successfully
 - Includes user information:
   - Username
@@ -27,6 +30,7 @@ This project includes Discord webhook integration for real-time monitoring and n
   - Registration timestamp
 
 ### 📧 **Email Verification Notifications**
+
 - Automatic notification when users verify their email addresses
 - Includes verification information:
   - Email address
@@ -34,6 +38,7 @@ This project includes Discord webhook integration for real-time monitoring and n
   - Verification timestamp
 
 ### 📨 **Email Delivery Notifications**
+
 - Automatic notification for every email sent (success or failure)
 - **Success notifications** include:
   - Recipient email address
@@ -47,6 +52,7 @@ This project includes Discord webhook integration for real-time monitoring and n
 ## Setup Instructions
 
 1. **Create Discord Webhook**
+
    - Go to your Discord server
    - Navigate to Server Settings → Integrations → Webhooks
    - Click "New Webhook"
@@ -54,6 +60,7 @@ This project includes Discord webhook integration for real-time monitoring and n
    - Copy the webhook URL
 
 2. **Configure Environment Variable**
+
    ```bash
    DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/YOUR_WEBHOOK_ID/YOUR_WEBHOOK_TOKEN
    ```
@@ -65,6 +72,7 @@ This project includes Discord webhook integration for real-time monitoring and n
 ## Notification Examples
 
 ### Startup Notification
+
 ```
 🚀 Paccy Started Successfully
 
@@ -79,6 +87,7 @@ Startup Time: 2025-08-10 13:22:51 UTC
 ```
 
 ### User Registration Notification
+
 ```
 👤 New User Registration
 
@@ -92,6 +101,7 @@ Registration Time: 2025-08-10 13:25:17 UTC
 ```
 
 ### Email Verification Notification
+
 ```
 ✅ Email Verified
 
@@ -104,6 +114,7 @@ Verification Time: 2025-08-10 13:30:45 UTC
 ```
 
 ### Email Success Notification
+
 ```
 📧 Email Sent Successfully
 
@@ -119,6 +130,7 @@ Sent At: 2025-08-10 13:35:22 UTC
 ```
 
 ### Email Failure Notification
+
 ```
 ⚠️ Email Delivery Failed
 
@@ -135,6 +147,7 @@ Failed At: 2025-08-10 13:35:22 UTC
 ```
 
 ### Error Alert
+
 ```
 🚨 AUTH Error Alert
 
@@ -150,7 +163,7 @@ timestamp: 2025-08-10T13:25:30Z
 ## Log Levels
 
 - **ERROR**: Sent to Discord automatically
-- **FATAL**: Sent to Discord automatically  
+- **FATAL**: Sent to Discord automatically
 - **INFO/DEBUG/WARN**: Only logged to console (not sent to Discord)
 
 ## Performance
@@ -168,13 +181,15 @@ timestamp: 2025-08-10T13:25:30Z
 ## Testing
 
 Use the test file to verify webhook functionality:
+
 ```bash
 go run examples/test_startup_notification.go
 ```
 
 This will test all webhook types:
+
 - Startup notification (green)
-- User registration notification (blue) 
+- User registration notification (blue)
 - Email verification notification (green)
 - Email success notification (green)
 - Email failure notification (orange/yellow)
@@ -185,7 +200,7 @@ Make sure to replace `YOUR_DISCORD_WEBHOOK_URL_HERE` with your actual webhook UR
 ## Color Coding System
 
 - 🟢 **Green (#5763719)**: Success events (startup, email verification, email delivery success)
-- 🔵 **Blue (#3447003)**: User events (registration)  
+- 🔵 **Blue (#3447003)**: User events (registration)
 - 🟡 **Orange/Yellow (#16776960)**: Warning events (email delivery failures)
 - 🔴 **Red (#15158332)**: Error events (system issues, fatal errors)
 
@@ -194,16 +209,19 @@ Make sure to replace `YOUR_DISCORD_WEBHOOK_URL_HERE` with your actual webhook UR
 Your Discord webhook provides comprehensive monitoring of:
 
 ### 📊 **Application Health**
+
 - Server deployments and restarts
 - System errors and fatal issues
 - Real-time application status
 
-### 👥 **User Activity** 
+### 👥 **User Activity**
+
 - New user registrations with details
 - Email verification completions
 - User engagement tracking
 
 ### 📬 **Email System Monitoring**
+
 - Every email sent (success/failure)
 - Email provider performance (Resender/Gmail SMTP)
 - Delivery issues and error debugging

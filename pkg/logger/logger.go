@@ -465,7 +465,7 @@ func SendUserRegistrationNotification(userID, username, email string) {
 						Inline: true,
 					},
 					{
-						Name:   "Email", 
+						Name:   "Email",
 						Value:  email,
 						Inline: true,
 					},

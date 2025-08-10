@@ -135,10 +135,10 @@ func (s *notifyService) SendNotification(ctx context.Context, user *dto.SendNoti
 	}
 	if err != nil {
 		logCtx.WithError(err).Error("Failed to send email")
-		
+
 		// Send Discord notification for email failure
 		logger.SendEmailFailureNotification(user.UserID, user.To, user.Subject, user.Template, string(activeProvider), err.Error())
-		
+
 		// decrease user quota usage if sending fails
 		decreaseErr := s.userQuotaRepo.DecreaseUserUsage(ctx, userObjID, string(models.QuotaTypeNotification))
 		if decreaseErr != nil {

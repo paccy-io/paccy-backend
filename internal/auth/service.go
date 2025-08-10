@@ -132,10 +132,10 @@ func (s *authService) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	s.log.WithUserID(user.ID.Hex()).Info("Email verified successfully")
-	
+
 	// Send Discord notification for email verification
 	logger.SendEmailVerificationNotification(user.ID.Hex(), user.Email)
-	
+
 	return nil
 }
 
