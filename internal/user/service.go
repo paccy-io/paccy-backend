@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/paccy-io/paccy-backend/internal/user/dto"
@@ -310,10 +311,18 @@ func (s *userService) UpdateProfile(ctx context.Context, id string, profile *dto
 		fields["profile.social_links"] = profile.SocialLinks
 	}
 	if profile.Birthdate != nil {
-		fields["profile.birthdate"] = profile.Birthdate
+		// convert month-day-year to time
+		birthdate, err := time.Parse("01-02-2006", *profile.Birthdate)
+		if err != nil {
+			return ErrInvalidInput
+		}
+		fields["profile.birthdate"] = birthdate
 	}
 	if profile.Location != nil {
 		fields["profile.location"] = *profile.Location
+	}
+	if profile.IsPublicProfile != nil {
+		fields["profile.is_public_profile"] = *profile.IsPublicProfile
 	}
 
 	user.BeforeUpdate()
