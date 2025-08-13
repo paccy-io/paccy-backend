@@ -8,8 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/paccy-io/paccy-backend/internal/user"
-
-	//"github.com/paccy-io/paccy-backend/internal/user/dto"
+	"github.com/paccy-io/paccy-backend/internal/user/dto"
 	"github.com/paccy-io/paccy-backend/internal/user/models"
 	. "github.com/paccy-io/paccy-backend/pkg/errors"
 	"github.com/paccy-io/paccy-backend/pkg/logger"
@@ -132,4 +131,176 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-// jwt support implementation before moving on to the next handler (// UpdateUser, DeleteUser, etc.)
+// UpdateUserFields updates basic user information (username, first name, last name)
+func (h *UserHandler) UpdateUserFields(c *fiber.Ctx) error {
+	log := logger.User()
+	requestID := c.Locals("request_id").(string)
+	logCtx := log.WithRequestID(requestID)
+
+	userID := c.Params("userID")
+	logCtx.WithUserID(userID).Info("Updating user fields")
+
+	var updateDTO dto.UpdateUserDTO
+	if err := c.BodyParser(&updateDTO); err != nil {
+		logCtx.WithError(err).Error("Failed to parse update user request body")
+		return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request body",
+			Code:    fiber.StatusBadRequest,
+		})
+	}
+
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
+
+	err := h.userService.UpdateUserFields(ctx, userID, &updateDTO)
+	if err != nil {
+		logCtx.WithError(err).Error("Failed to update user fields")
+
+		switch err {
+		case ErrUserNotFound:
+			return c.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "User not found",
+				Code:    fiber.StatusNotFound,
+			})
+		case ErrUserExists:
+			return c.Status(fiber.StatusConflict).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Username already exists",
+				Code:    fiber.StatusConflict,
+			})
+		case ErrInvalidInput:
+			return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Invalid input data",
+				Code:    fiber.StatusBadRequest,
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Failed to update user fields",
+				Code:    fiber.StatusInternalServerError,
+			})
+		}
+	}
+
+	logCtx.WithUserID(userID).Info("User fields updated successfully")
+
+	return c.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Success: true,
+		Message: "User fields updated successfully",
+	})
+}
+
+// UpdateProfile updates user profile information (bio, avatar, graduation year, etc.)
+func (h *UserHandler) UpdateProfile(c *fiber.Ctx) error {
+	log := logger.User()
+	requestID := c.Locals("request_id").(string)
+	logCtx := log.WithRequestID(requestID)
+
+	userID := c.Params("userID")
+	logCtx.WithUserID(userID).Info("Updating user profile")
+
+	var updateDTO dto.UpdateUserProfileDTO
+	if err := c.BodyParser(&updateDTO); err != nil {
+		logCtx.WithError(err).Error("Failed to parse update profile request body")
+		return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request body",
+			Code:    fiber.StatusBadRequest,
+		})
+	}
+
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
+
+	err := h.userService.UpdateProfile(ctx, userID, &updateDTO)
+	if err != nil {
+		logCtx.WithError(err).Error("Failed to update user profile")
+
+		switch err {
+		case ErrUserNotFound:
+			return c.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "User not found",
+				Code:    fiber.StatusNotFound,
+			})
+		case ErrInvalidInput:
+			return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Invalid input data",
+				Code:    fiber.StatusBadRequest,
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Failed to update user profile",
+				Code:    fiber.StatusInternalServerError,
+			})
+		}
+	}
+
+	logCtx.WithUserID(userID).Info("User profile updated successfully")
+
+	return c.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Success: true,
+		Message: "User profile updated successfully",
+	})
+}
+
+// UpdatePreferences updates user preferences (theme, language, notifications, etc.)
+func (h *UserHandler) UpdatePreferences(c *fiber.Ctx) error {
+	log := logger.User()
+	requestID := c.Locals("request_id").(string)
+	logCtx := log.WithRequestID(requestID)
+
+	userID := c.Params("userID")
+	logCtx.WithUserID(userID).Info("Updating user preferences")
+
+	var updateDTO dto.UpdateUserPreferencesDTO
+	if err := c.BodyParser(&updateDTO); err != nil {
+		logCtx.WithError(err).Error("Failed to parse update preferences request body")
+		return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+			Success: false,
+			Error:   "Invalid request body",
+			Code:    fiber.StatusBadRequest,
+		})
+	}
+
+	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
+	defer cancel()
+
+	err := h.userService.UpdatePreferences(ctx, userID, &updateDTO)
+	if err != nil {
+		logCtx.WithError(err).Error("Failed to update user preferences")
+
+		switch err {
+		case ErrUserNotFound:
+			return c.Status(fiber.StatusNotFound).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "User not found",
+				Code:    fiber.StatusNotFound,
+			})
+		case ErrInvalidInput:
+			return c.Status(fiber.StatusBadRequest).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Invalid input data",
+				Code:    fiber.StatusBadRequest,
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(responses.ErrorResponse{
+				Success: false,
+				Error:   "Failed to update user preferences",
+				Code:    fiber.StatusInternalServerError,
+			})
+		}
+	}
+
+	logCtx.WithUserID(userID).Info("User preferences updated successfully")
+
+	return c.Status(fiber.StatusOK).JSON(responses.SuccessResponse{
+		Success: true,
+		Message: "User preferences updated successfully",
+	})
+}

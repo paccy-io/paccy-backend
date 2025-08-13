@@ -64,7 +64,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	authHandler := handlers.NewAuthHandler(authService)
-	notificationHandler := handlers.NewNotificationHandler(notifyService, dto.QuotaDTO{
+	/*notificationHandler := handlers.NewNotificationHandler(notifyService, dto.QuotaDTO{
 		ResenderQuota: dto.Quota{
 			DailyQuota:   cfg.GetResenderQuota().DailyQuota,
 			MonthlyQuota: cfg.GetResenderQuota().MonthlyQuota,
@@ -74,6 +74,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 			MonthlyQuota: cfg.GetGmailSmtpQuota().MonthlyQuota,
 		},
 	})
+	*/
 
 	// check the host name, if it is from https://paccy.azurewebsites.net/* then redirect to https://api.paccy.io/*
 	api.Use(func(c *fiber.Ctx) error {
@@ -95,13 +96,16 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	public.Post("/login", authHandler.Login)
 
 	// Notification routes
-	public.Post("/notify", notificationHandler.SendNotification)
-	public.Post("/notify/quota", notificationHandler.CreateProjectQuota)
+	//public.Post("/notify", notificationHandler.SendNotification)
+	//public.Post("/notify/quota", notificationHandler.CreateProjectQuota)
 
 	// User routes
 	public.Get("/users", userHandler.GetUsers)
 
 	// Protected user routes (require JWT + user ID validation)
 	public.Get("/users/:userID", middleware.CombinedJWTUserIDMiddleware(authService), userHandler.GetUser)
+	public.Put("/users/:userID", middleware.CombinedJWTUserIDMiddleware(authService), userHandler.UpdateUserFields)
+	public.Put("/users/:userID/profile", middleware.CombinedJWTUserIDMiddleware(authService), userHandler.UpdateProfile)
+	public.Put("/users/:userID/preferences", middleware.CombinedJWTUserIDMiddleware(authService), userHandler.UpdatePreferences)
 
 }
