@@ -24,4 +24,7 @@ var (
 	ErrUserQuotaExists     = errors.New("user quota already exists")
 	ErrInvalidTemplateName = errors.New("invalid template name")
 	ErrTemplateRendering   = errors.New("error rendering template")
+	ErrMissingUserID       = errors.New("missing user ID")
+	ErrMissingName         = errors.New("missing name")
+	ErrCollegeNotFound     = errors.New("college application not found")
 )
