@@ -13,14 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var (
-	ErrCreateFailed    = errors.ErrUnexpected
-	ErrUpdateFailed    = errors.ErrUnexpected
-	ErrDeleteFailed    = errors.ErrUnexpected
-	ErrGetFailed       = errors.ErrUnexpected
-	ErrInvalidObjectID = errors.ErrInvalidInput
-)
-
 var collegeLogger = logger.New("college")
 
 type CollegeRepository interface {
@@ -72,7 +64,7 @@ func (r *mongoCollegeRepository) Create(ctx context.Context, application *models
 			"error":   err.Error(),
 			"user_id": application.UserID.Hex(),
 		})
-		return nil, ErrCreateFailed
+		return nil, errors.ErrCreateFailed
 	}
 
 	application.ID = result.InsertedID.(primitive.ObjectID)
@@ -91,7 +83,7 @@ func (r *mongoCollegeRepository) GetByID(ctx context.Context, id string) (*model
 			"id":    id,
 			"error": err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	var application models.CollegeApplication
@@ -107,7 +99,7 @@ func (r *mongoCollegeRepository) GetByID(ctx context.Context, id string) (*model
 			"id":    id,
 			"error": err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 
 	return &application, nil
@@ -120,7 +112,7 @@ func (r *mongoCollegeRepository) GetByUserID(ctx context.Context, userID string)
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	cursor, err := r.collection.Find(ctx, bson.M{"user_id": objectID})
@@ -129,7 +121,7 @@ func (r *mongoCollegeRepository) GetByUserID(ctx context.Context, userID string)
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 	defer cursor.Close(ctx)
 
@@ -151,7 +143,7 @@ func (r *mongoCollegeRepository) GetByUserID(ctx context.Context, userID string)
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 
 	collegeLogger.Info("Retrieved college applications for user", map[string]interface{}{
@@ -169,7 +161,7 @@ func (r *mongoCollegeRepository) Update(ctx context.Context, id string, updates 
 			"id":    id,
 			"error": err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	// Add updated_at timestamp
@@ -194,7 +186,7 @@ func (r *mongoCollegeRepository) Update(ctx context.Context, id string, updates 
 			"id":    id,
 			"error": err.Error(),
 		})
-		return nil, ErrUpdateFailed
+		return nil, errors.ErrUpdateFailed
 	}
 
 	collegeLogger.Info("College application updated successfully", map[string]interface{}{
@@ -234,7 +226,7 @@ func (r *mongoCollegeRepository) UpdateWithFilter(ctx context.Context, filter bs
 			"filter": filter,
 			"error":  err.Error(),
 		})
-		return nil, ErrUpdateFailed
+		return nil, errors.ErrUpdateFailed
 	}
 
 	collegeLogger.Info("College application updated successfully with filter", map[string]interface{}{
@@ -284,7 +276,7 @@ func (r *mongoCollegeRepository) UpdateWithArrayFilters(ctx context.Context, fil
 			"filter": filter,
 			"error":  err.Error(),
 		})
-		return nil, ErrUpdateFailed
+		return nil, errors.ErrUpdateFailed
 	}
 
 	collegeLogger.Info("College application updated successfully with array filters", map[string]interface{}{
@@ -302,7 +294,7 @@ func (r *mongoCollegeRepository) PushToArray(ctx context.Context, id string, arr
 			"id":    id,
 			"error": err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	updates := bson.M{
@@ -330,7 +322,7 @@ func (r *mongoCollegeRepository) PushToArray(ctx context.Context, id string, arr
 			"field": arrayField,
 			"error": err.Error(),
 		})
-		return nil, ErrUpdateFailed
+		return nil, errors.ErrUpdateFailed
 	}
 
 	collegeLogger.Info("Successfully pushed to array in college application", map[string]interface{}{
@@ -365,7 +357,7 @@ func (r *mongoCollegeRepository) PullFromArray(ctx context.Context, filter bson.
 			"filter": filter,
 			"error":  err.Error(),
 		})
-		return nil, ErrUpdateFailed
+		return nil, errors.ErrUpdateFailed
 	}
 
 	collegeLogger.Info("Successfully pulled from array in college application", map[string]interface{}{
@@ -383,7 +375,7 @@ func (r *mongoCollegeRepository) Delete(ctx context.Context, id string) error {
 			"id":    id,
 			"error": err.Error(),
 		})
-		return ErrInvalidObjectID
+		return errors.ErrInvalidObjectID
 	}
 
 	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": objectID})
@@ -392,7 +384,7 @@ func (r *mongoCollegeRepository) Delete(ctx context.Context, id string) error {
 			"id":    id,
 			"error": err.Error(),
 		})
-		return ErrDeleteFailed
+		return errors.ErrDeleteFailed
 	}
 
 	if result.DeletedCount == 0 {
@@ -416,7 +408,7 @@ func (r *mongoCollegeRepository) Count(ctx context.Context, userID string) (int6
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return 0, ErrInvalidObjectID
+		return 0, errors.ErrInvalidObjectID
 	}
 
 	count, err := r.collection.CountDocuments(ctx, bson.M{"user_id": objectID})
@@ -425,7 +417,7 @@ func (r *mongoCollegeRepository) Count(ctx context.Context, userID string) (int6
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return 0, ErrGetFailed
+		return 0, errors.ErrGetFailed
 	}
 
 	return count, nil
@@ -438,7 +430,7 @@ func (r *mongoCollegeRepository) GetByStatus(ctx context.Context, userID string,
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	filter := bson.M{
@@ -453,7 +445,7 @@ func (r *mongoCollegeRepository) GetByStatus(ctx context.Context, userID string,
 			"status":  status,
 			"error":   err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 	defer cursor.Close(ctx)
 
@@ -476,7 +468,7 @@ func (r *mongoCollegeRepository) GetByStatus(ctx context.Context, userID string,
 			"status":  status,
 			"error":   err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 
 	return applications, nil
@@ -489,7 +481,7 @@ func (r *mongoCollegeRepository) GetByPriority(ctx context.Context, userID strin
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	filter := bson.M{
@@ -504,7 +496,7 @@ func (r *mongoCollegeRepository) GetByPriority(ctx context.Context, userID strin
 			"priority": priority,
 			"error":    err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 	defer cursor.Close(ctx)
 
@@ -527,7 +519,7 @@ func (r *mongoCollegeRepository) GetByPriority(ctx context.Context, userID strin
 			"priority": priority,
 			"error":    err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 
 	return applications, nil
@@ -540,7 +532,7 @@ func (r *mongoCollegeRepository) GetUpcomingDeadlines(ctx context.Context, userI
 			"user_id": userID,
 			"error":   err.Error(),
 		})
-		return nil, ErrInvalidObjectID
+		return nil, errors.ErrInvalidObjectID
 	}
 
 	now := time.Now()
@@ -563,7 +555,7 @@ func (r *mongoCollegeRepository) GetUpcomingDeadlines(ctx context.Context, userI
 			"days":    days,
 			"error":   err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 	defer cursor.Close(ctx)
 
@@ -586,7 +578,7 @@ func (r *mongoCollegeRepository) GetUpcomingDeadlines(ctx context.Context, userI
 			"days":    days,
 			"error":   err.Error(),
 		})
-		return nil, ErrGetFailed
+		return nil, errors.ErrGetFailed
 	}
 
 	collegeLogger.Info("Retrieved college applications with upcoming deadlines", map[string]interface{}{

@@ -10,6 +10,7 @@ import (
 	"github.com/paccy-io/paccy-backend/internal/auth"
 	"github.com/paccy-io/paccy-backend/internal/auth/jwt"
 	"github.com/paccy-io/paccy-backend/internal/college"
+	"github.com/paccy-io/paccy-backend/internal/essay"
 	"github.com/paccy-io/paccy-backend/internal/notify"
 	"github.com/paccy-io/paccy-backend/internal/notify/dto"
 	"github.com/paccy-io/paccy-backend/internal/notify/providers"
@@ -33,6 +34,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 
 	userRepo := user.NewMongoUserRepository(db)
 	collegeRepo := college.NewMongoCollegeRepository(db)
+	essayRepo := essay.NewMongoEssayRepository(db)
 	userQuotaRepo := repositories.NewMongoUserQuotaRepository(db, &dto.UserQuotaDTO{
 		AuthQuota:         s1,
 		SecurityQuota:     s2,
@@ -55,6 +57,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	// Initialize services
 	userService := user.NewUserService(userRepo, validate)
 	collegeService := college.NewCollegeService(collegeRepo, validate)
+	essayService := essay.NewEssayService(essayRepo, collegeRepo, validate)
 	notifyService := notify.NewService(
 		resendProvider,
 		gmailProvider,
@@ -67,6 +70,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	// Initialize handlers
 	userHandler := handlers.NewUserHandler(userService)
 	collegeHandler := handlers.NewCollegeHandler(collegeService)
+	essayHandler := handlers.NewEssayHandler(essayService)
 	authHandler := handlers.NewAuthHandler(authService)
 	/*notificationHandler := handlers.NewNotificationHandler(notifyService, dto.QuotaDTO{
 		ResenderQuota: dto.Quota{
@@ -133,5 +137,16 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	public.Get("/college-applications/:applicationId/checklists/:checklistId/tasks/:taskId", middleware.JWTWithUserValidationMiddleware(authService, userService), collegeHandler.GetTask)
 	public.Put("/college-applications/:applicationId/checklists/:checklistId/tasks/:taskId", middleware.JWTWithUserValidationMiddleware(authService, userService), collegeHandler.UpdateTask)
 	public.Delete("/college-applications/:applicationId/checklists/:checklistId/tasks/:taskId", middleware.JWTWithUserValidationMiddleware(authService, userService), collegeHandler.DeleteTask)
+
+	// Essay routes
+	public.Post("/essays", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.CreateEssay)
+	public.Get("/essays", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetUserEssays)
+	public.Get("/essays/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssay)
+	public.Put("/essays/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.UpdateEssay)
+	public.Delete("/essays/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.DeleteEssay)
+	//public.Get("/essays/status", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssaysByStatus)
+	//public.Get("/essays/deadlines", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssaysWithDeadlines) !! error
+	//public.Get("/essays/count", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssayCount)
+	public.Get("/college-applications/:college_application_id/essays", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssaysByCollegeApplication)
 
 }
