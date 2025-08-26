@@ -203,7 +203,7 @@ func (s *authService) VerifyToken(ctx context.Context, token string) (*jwt.Claim
 
 	claims, err := s.jwtProvider.VerifyToken(token)
 	if err != nil {
-		s.log.WithError(err).Error("JWT token verification failed")
+		s.log.WithError(err).Warn("JWT token verification failed")
 		return nil, err
 	}
 

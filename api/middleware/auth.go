@@ -55,7 +55,7 @@ func JWTMiddleware(authService auth.AuthService) fiber.Handler {
 		// Verify token
 		claims, err := authService.VerifyToken(c.Context(), token)
 		if err != nil {
-			logCtx.WithError(err).Error("JWT token verification failed")
+			logCtx.WithError(err).Warn("JWT token verification failed")
 			return c.Status(fiber.StatusUnauthorized).JSON(responses.ErrorResponse{
 				Success: false,
 				Error:   "Invalid or expired token",
@@ -117,7 +117,7 @@ func JWTWithUserValidationMiddleware(authService auth.AuthService, userService u
 		// Verify token
 		claims, err := authService.VerifyToken(c.Context(), token)
 		if err != nil {
-			logCtx.WithError(err).Error("JWT token verification failed")
+			logCtx.WithError(err).Warn("JWT token verification failed")
 			return c.Status(fiber.StatusUnauthorized).JSON(responses.ErrorResponse{
 				Success: false,
 				Error:   "Invalid or expired token",
@@ -244,7 +244,7 @@ func CombinedJWTUserIDMiddleware(authService auth.AuthService) fiber.Handler {
 		// Verify token
 		claims, err := authService.VerifyToken(c.Context(), token)
 		if err != nil {
-			logCtx.WithError(err).Error("JWT token verification failed")
+			logCtx.WithError(err).Warn("JWT token verification failed")
 			return c.Status(fiber.StatusUnauthorized).JSON(responses.ErrorResponse{
 				Success: false,
 				Error:   "Invalid or expired token",
@@ -342,7 +342,7 @@ func CombinedJWTUserIDWithValidationMiddleware(authService auth.AuthService, use
 		// Verify token
 		claims, err := authService.VerifyToken(c.Context(), token)
 		if err != nil {
-			logCtx.WithError(err).Error("JWT token verification failed")
+			logCtx.WithError(err).Warn("JWT token verification failed")
 			return c.Status(fiber.StatusUnauthorized).JSON(responses.ErrorResponse{
 				Success: false,
 				Error:   "Invalid or expired token",

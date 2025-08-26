@@ -9,6 +9,7 @@ import (
 	"github.com/paccy-io/paccy-backend/config"
 	"github.com/paccy-io/paccy-backend/internal/auth"
 	"github.com/paccy-io/paccy-backend/internal/auth/jwt"
+	"github.com/paccy-io/paccy-backend/internal/calendar"
 	"github.com/paccy-io/paccy-backend/internal/college"
 	"github.com/paccy-io/paccy-backend/internal/essay"
 	"github.com/paccy-io/paccy-backend/internal/notify"
@@ -35,6 +36,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	userRepo := user.NewMongoUserRepository(db)
 	collegeRepo := college.NewMongoCollegeRepository(db)
 	essayRepo := essay.NewMongoEssayRepository(db)
+	calendarRepo := calendar.NewMongoCalendarRepository(db)
 	userQuotaRepo := repositories.NewMongoUserQuotaRepository(db, &dto.UserQuotaDTO{
 		AuthQuota:         s1,
 		SecurityQuota:     s2,
@@ -58,6 +60,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	userService := user.NewUserService(userRepo, validate)
 	collegeService := college.NewCollegeService(collegeRepo, validate)
 	essayService := essay.NewEssayService(essayRepo, collegeRepo, validate)
+	calendarService := calendar.NewCalendarService(calendarRepo, collegeRepo, validate)
 	notifyService := notify.NewService(
 		resendProvider,
 		gmailProvider,
@@ -71,6 +74,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	userHandler := handlers.NewUserHandler(userService)
 	collegeHandler := handlers.NewCollegeHandler(collegeService)
 	essayHandler := handlers.NewEssayHandler(essayService)
+	calendarHandler := handlers.NewCalendarHandler(calendarService)
 	authHandler := handlers.NewAuthHandler(authService)
 	/*notificationHandler := handlers.NewNotificationHandler(notifyService, dto.QuotaDTO{
 		ResenderQuota: dto.Quota{
@@ -100,7 +104,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	public.Get("/verify", authHandler.VerifyToken)
 	public.Post("/verify-email/:token", authHandler.VerifyEmail)
 	public.Post("/send-verification/:userID", authHandler.SendEmailVerification)
-	public.Post("/", authHandler.RegisterAndSendVerification)
+	public.Post("/register", authHandler.RegisterAndSendVerification)
 	public.Post("/login", authHandler.Login)
 
 	// Notification routes
@@ -148,5 +152,19 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	//public.Get("/essays/deadlines", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssaysWithDeadlines) !! error
 	//public.Get("/essays/count", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssayCount)
 	public.Get("/college-applications/:college_application_id/essays", middleware.JWTWithUserValidationMiddleware(authService, userService), essayHandler.GetEssaysByCollegeApplication)
+
+	// Calendar routes
+	public.Post("/calendar", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.CreateEvent)
+	public.Get("/calendar", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetUserEvents)
+	public.Get("/calendar/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetEvent)
+	public.Put("/calendar/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.UpdateEvent)
+	public.Delete("/calendar/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.DeleteEvent)
+	//public.Get("/calendar/inbox", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetInboxEvents)
+	//public.Get("/calendar/date-range", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetEventsByDateRange)
+	//public.Get("/calendar/type", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetEventsByType)
+	//public.Get("/calendar/priority", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetEventsByPriority)
+	//public.Get("/calendar/upcoming", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetUpcomingEvents)
+	//public.Get("/calendar/count", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetEventCount)
+	public.Get("/college-applications/:college_application_id/calendar", middleware.JWTWithUserValidationMiddleware(authService, userService), calendarHandler.GetEventsByCollegeApplication)
 
 }
