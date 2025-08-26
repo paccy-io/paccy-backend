@@ -18,7 +18,7 @@ type CreateEventDTO struct {
 	CollegeID   *string             `json:"college_id" validate:"omitempty"` // optional college reference
 }
 
-// UpdateEventDTO with custom date handling
+// UpdateEventDTO with custom date and college_id handling
 type UpdateEventDTO struct {
 	Title       *string              `json:"title" validate:"omitempty,min=1,max=255"`
 	Description *string              `json:"description" validate:"omitempty,max=1000"`
@@ -29,10 +29,9 @@ type UpdateEventDTO struct {
 	CollegeID   *string              `json:"college_id" validate:"omitempty"` // can be set to null to remove college reference
 
 	// Internal fields to track what was provided in JSON
-	dateProvided bool
-}
-
-// Custom UnmarshalJSON to detect when date field is explicitly provided
+	dateProvided      bool
+	collegeIDProvided bool
+} // Custom UnmarshalJSON to detect when date field is explicitly provided
 func (dto *UpdateEventDTO) UnmarshalJSON(data []byte) error {
 	// First unmarshal into a map to detect which fields are present
 	var raw map[string]interface{}
@@ -43,6 +42,11 @@ func (dto *UpdateEventDTO) UnmarshalJSON(data []byte) error {
 	// Check if date field was provided (even if null)
 	if _, exists := raw["date"]; exists {
 		dto.dateProvided = true
+	}
+
+	// Check if college_id field was provided (even if null)
+	if _, exists := raw["college_id"]; exists {
+		dto.collegeIDProvided = true
 	}
 
 	// Create a type alias to avoid infinite recursion
@@ -147,11 +151,17 @@ func (dto *UpdateEventDTO) ToUpdateMap() (map[string]interface{}, map[string]int
 	if dto.Location != nil {
 		setUpdates["location"] = *dto.Location
 	}
-	if dto.CollegeID != nil {
-		if *dto.CollegeID == "" {
-			// Remove college reference
+
+	// Check if college_id field was explicitly provided in JSON
+	if dto.collegeIDProvided {
+		if dto.CollegeID == nil {
+			// Setting college_id to null means removing college reference - unset the field
+			unsetUpdates["college_id"] = ""
+		} else if *dto.CollegeID == "" {
+			// Setting college_id to empty string also means removing college reference
 			unsetUpdates["college_id"] = ""
 		} else {
+			// Setting college_id to a specific value
 			collegeObjectID, err := primitive.ObjectIDFromHex(*dto.CollegeID)
 			if err != nil {
 				return nil, nil, err
