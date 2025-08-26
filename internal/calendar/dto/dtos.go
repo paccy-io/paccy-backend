@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/paccy-io/paccy-backend/internal/calendar/models"
@@ -17,14 +18,39 @@ type CreateEventDTO struct {
 	CollegeID   *string             `json:"college_id" validate:"omitempty"` // optional college reference
 }
 
+// UpdateEventDTO with custom date handling
 type UpdateEventDTO struct {
 	Title       *string              `json:"title" validate:"omitempty,min=1,max=255"`
 	Description *string              `json:"description" validate:"omitempty,max=1000"`
-	Date        *time.Time           `json:"date"` // can be set to null to move to inbox
+	Date        *time.Time           `json:"date,omitempty"` // can be set to null to move to inbox
 	Type        *models.EventType    `json:"type" validate:"omitempty,oneof=application_deadline interview campus_visit test_date reminder other"`
 	Priority    *models.TaskPriority `json:"priority" validate:"omitempty,oneof=high medium low"`
 	Location    *string              `json:"location" validate:"omitempty,max=255"`
 	CollegeID   *string              `json:"college_id" validate:"omitempty"` // can be set to null to remove college reference
+	
+	// Internal fields to track what was provided in JSON
+	dateProvided bool
+}
+
+// Custom UnmarshalJSON to detect when date field is explicitly provided
+func (dto *UpdateEventDTO) UnmarshalJSON(data []byte) error {
+	// First unmarshal into a map to detect which fields are present
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	// Check if date field was provided (even if null)
+	if _, exists := raw["date"]; exists {
+		dto.dateProvided = true
+	}
+
+	// Create a type alias to avoid infinite recursion
+	type Alias UpdateEventDTO
+	aux := (*Alias)(dto)
+	
+	// Unmarshal normally
+	return json.Unmarshal(data, aux)
 }
 
 // EventResponseDTO includes college name for frontend display
@@ -89,40 +115,50 @@ func EventToResponseDTO(event *models.Event, collegeName *string) *EventResponse
 	}
 }
 
-// ToUpdateMap converts UpdateEventDTO to a bson.M for database updates
-func (dto *UpdateEventDTO) ToUpdateMap() (map[string]interface{}, error) {
-	updates := make(map[string]interface{})
+// ToUpdateMap converts UpdateEventDTO to update operations for database
+func (dto *UpdateEventDTO) ToUpdateMap() (map[string]interface{}, map[string]interface{}, error) {
+	setUpdates := make(map[string]interface{})
+	unsetUpdates := make(map[string]interface{})
 
 	if dto.Title != nil {
-		updates["title"] = *dto.Title
+		setUpdates["title"] = *dto.Title
 	}
 	if dto.Description != nil {
-		updates["description"] = *dto.Description
+		setUpdates["description"] = *dto.Description
 	}
-	if dto.Date != nil {
-		updates["date"] = *dto.Date
+	
+	// Check if date field was explicitly provided in JSON
+	if dto.dateProvided {
+		if dto.Date == nil {
+			// Setting date to null means moving to inbox - unset the date field
+			unsetUpdates["date"] = ""
+		} else {
+			// Setting date to a specific value
+			setUpdates["date"] = *dto.Date
+		}
 	}
+	
 	if dto.Type != nil {
-		updates["type"] = *dto.Type
+		setUpdates["type"] = *dto.Type
 	}
 	if dto.Priority != nil {
-		updates["priority"] = *dto.Priority
+		setUpdates["priority"] = *dto.Priority
 	}
 	if dto.Location != nil {
-		updates["location"] = *dto.Location
+		setUpdates["location"] = *dto.Location
 	}
 	if dto.CollegeID != nil {
 		if *dto.CollegeID == "" {
-			// Set to nil to remove college reference
-			updates["college_id"] = nil
+			// Remove college reference
+			unsetUpdates["college_id"] = ""
 		} else {
 			collegeObjectID, err := primitive.ObjectIDFromHex(*dto.CollegeID)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			updates["college_id"] = collegeObjectID
+			setUpdates["college_id"] = collegeObjectID
 		}
 	}
 
-	return updates, nil
+	return setUpdates, unsetUpdates, nil
 }

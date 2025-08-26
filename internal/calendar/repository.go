@@ -26,6 +26,7 @@ type CalendarRepository interface {
 	GetUpcomingEvents(ctx context.Context, userID string, days int) ([]*models.Event, error)
 	GetEventsByCollegeApplication(ctx context.Context, userID, collegeApplicationID string) ([]*models.Event, error)
 	Update(ctx context.Context, id string, updates bson.M) (*models.Event, error)
+	UpdateWithOperations(ctx context.Context, id string, setUpdates, unsetUpdates map[string]interface{}) (*models.Event, error)
 	Delete(ctx context.Context, id string) error
 	Count(ctx context.Context, userID string) (int64, error)
 }
@@ -450,6 +451,66 @@ func (r *mongoCalendarRepository) Update(ctx context.Context, id string, updates
 	}
 
 	calendarLogger.Info("Event updated successfully", map[string]interface{}{
+		"event_id": id,
+		"title":    event.Title,
+	})
+
+	return &event, nil
+}
+
+func (r *mongoCalendarRepository) UpdateWithOperations(ctx context.Context, id string, setUpdates, unsetUpdates map[string]interface{}) (*models.Event, error) {
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		calendarLogger.Error("Invalid ObjectID format for update with operations", map[string]interface{}{
+			"id":    id,
+			"error": err.Error(),
+		})
+		return nil, errors.ErrInvalidObjectID
+	}
+
+	// Build update operations
+	updateOps := bson.M{}
+	
+	// Add $set operations if there are any
+	if len(setUpdates) > 0 {
+		// Add updated_at timestamp
+		setUpdates["updated_at"] = time.Now()
+		updateOps["$set"] = setUpdates
+	}
+	
+	// Add $unset operations if there are any
+	if len(unsetUpdates) > 0 {
+		updateOps["$unset"] = unsetUpdates
+	}
+
+	// If no operations, just update the timestamp
+	if len(updateOps) == 0 {
+		updateOps["$set"] = bson.M{"updated_at": time.Now()}
+	}
+
+	result := r.collection.FindOneAndUpdate(
+		ctx,
+		bson.M{"_id": objectID},
+		updateOps,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	)
+
+	var event models.Event
+	if err := result.Decode(&event); err != nil {
+		if err == mongo.ErrNoDocuments {
+			calendarLogger.Warn("Event not found for update with operations", map[string]interface{}{
+				"id": id,
+			})
+			return nil, errors.ErrGetFailed
+		}
+		calendarLogger.Error("Failed to update event with operations", map[string]interface{}{
+			"id":    id,
+			"error": err.Error(),
+		})
+		return nil, errors.ErrUpdateFailed
+	}
+
+	calendarLogger.Info("Event updated successfully with operations", map[string]interface{}{
 		"event_id": id,
 		"title":    event.Title,
 	})

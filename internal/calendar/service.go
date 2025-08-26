@@ -380,8 +380,8 @@ func (s *calendarService) UpdateEvent(ctx context.Context, userID, eventID strin
 		return nil, errors.ErrUpdateFailed
 	}
 
-	// Convert DTO to update map
-	updates, err := updateDTO.ToUpdateMap()
+	// Convert DTO to update maps
+	setUpdates, unsetUpdates, err := updateDTO.ToUpdateMap()
 	if err != nil {
 		serviceLogger.Error("Failed to convert DTO to update map", map[string]interface{}{
 			"event_id": eventID,
@@ -392,7 +392,7 @@ func (s *calendarService) UpdateEvent(ctx context.Context, userID, eventID strin
 	}
 
 	// Update event
-	updatedEvent, err := s.calendarRepo.Update(ctx, eventID, updates)
+	updatedEvent, err := s.calendarRepo.UpdateWithOperations(ctx, eventID, setUpdates, unsetUpdates)
 	if err != nil {
 		serviceLogger.Error("Failed to update event", map[string]interface{}{
 			"event_id": eventID,
