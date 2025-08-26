@@ -470,14 +470,14 @@ func (r *mongoCalendarRepository) UpdateWithOperations(ctx context.Context, id s
 
 	// Build update operations
 	updateOps := bson.M{}
-	
+
 	// Add $set operations if there are any
 	if len(setUpdates) > 0 {
 		// Add updated_at timestamp
 		setUpdates["updated_at"] = time.Now()
 		updateOps["$set"] = setUpdates
 	}
-	
+
 	// Add $unset operations if there are any
 	if len(unsetUpdates) > 0 {
 		updateOps["$unset"] = unsetUpdates

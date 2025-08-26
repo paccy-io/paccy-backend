@@ -27,7 +27,7 @@ type UpdateEventDTO struct {
 	Priority    *models.TaskPriority `json:"priority" validate:"omitempty,oneof=high medium low"`
 	Location    *string              `json:"location" validate:"omitempty,max=255"`
 	CollegeID   *string              `json:"college_id" validate:"omitempty"` // can be set to null to remove college reference
-	
+
 	// Internal fields to track what was provided in JSON
 	dateProvided bool
 }
@@ -48,7 +48,7 @@ func (dto *UpdateEventDTO) UnmarshalJSON(data []byte) error {
 	// Create a type alias to avoid infinite recursion
 	type Alias UpdateEventDTO
 	aux := (*Alias)(dto)
-	
+
 	// Unmarshal normally
 	return json.Unmarshal(data, aux)
 }
@@ -126,7 +126,7 @@ func (dto *UpdateEventDTO) ToUpdateMap() (map[string]interface{}, map[string]int
 	if dto.Description != nil {
 		setUpdates["description"] = *dto.Description
 	}
-	
+
 	// Check if date field was explicitly provided in JSON
 	if dto.dateProvided {
 		if dto.Date == nil {
@@ -137,7 +137,7 @@ func (dto *UpdateEventDTO) ToUpdateMap() (map[string]interface{}, map[string]int
 			setUpdates["date"] = *dto.Date
 		}
 	}
-	
+
 	if dto.Type != nil {
 		setUpdates["type"] = *dto.Type
 	}
