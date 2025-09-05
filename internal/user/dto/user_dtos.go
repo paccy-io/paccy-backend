@@ -30,7 +30,7 @@ type UpdateUserProfileDTO struct { // all fields are optional
 	Bio             *string           `json:"bio,omitempty" validate:"omitempty,max=500"`
 	GraduationYear  *int              `json:"graduation_year,omitempty" validate:"omitempty,gte=1900,lte=2100"`
 	School          *string           `json:"school,omitempty" validate:"omitempty,max=100"`
-	Website         *string           `json:"website,omitempty" validate:"omitempty,url"`
+	Website         *string           `json:"website,omitempty" validate:"omitempty, max=500"`
 	SocialLinks     map[string]string `json:"social_links,omitempty"`
 	Birthdate       *string           `json:"birthdate,omitempty" validate:"omitempty"`
 	Location        *string           `json:"location,omitempty" validate:"omitempty,max=100"`
