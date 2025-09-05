@@ -28,7 +28,7 @@ func main() {
 	app := fiber.New(fiber.Config{
 		AppName:      "Paccy Backend API",
 		ServerHeader: "Paccy",
-		//	ErrorHandler: middleware.ErrorHandler,
+		//ErrorHandler: middleware.ErrorHandler,
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
