@@ -17,7 +17,7 @@ type Extracurricular struct {
 	Description  string   `bson:"description,omitempty" json:"description,omitempty"`   // optional
 	Location     string   `bson:"location,omitempty" json:"location,omitempty"`         // optional
 	Website      string   `bson:"website,omitempty" json:"website,omitempty"`           // optional
-	AIScore      string   `bson:"ai_score,omitempty" json:"ai_score,omitempty"`         // high, medium, low, or empty string if not evaluated by AI
+	AIScore      AIScore  `bson:"ai_score,omitempty" json:"ai_score,omitempty"`         // high, medium, low, or empty string if not evaluated by AI
 	Achievements []string `bson:"achievements,omitempty" json:"achievements,omitempty"` // optional, list of notable achievements
 	Skills       []string `bson:"skills,omitempty" json:"skills,omitempty"`             // optional, list of skills gained
 
@@ -39,6 +39,14 @@ const (
 	CategoryWorkExperience   Category = "work_experience"
 	CategoryResearch         Category = "research"
 	CategoryOther            Category = "other"
+)
+
+type AIScore string
+
+const (
+	AIScoreHigh   AIScore = "high"
+	AIScoreMedium AIScore = "medium"
+	AIScoreLow    AIScore = "low"
 )
 
 func GetCollectionName() string {
