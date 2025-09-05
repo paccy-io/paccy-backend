@@ -9,6 +9,7 @@ type UserRole string
 const (
 	RoleBanned    UserRole = "banned"
 	RoleUser      UserRole = "user"
+	RoleCounselor UserRole = "counselor"
 	RoleAlpha     UserRole = "alpha_user"
 	RoleBeta      UserRole = "beta_user"
 	RoleReviewer  UserRole = "reviewer"
