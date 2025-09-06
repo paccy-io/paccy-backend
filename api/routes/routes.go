@@ -7,6 +7,7 @@ import (
 	"github.com/paccy-io/paccy-backend/api/handlers"
 	"github.com/paccy-io/paccy-backend/api/middleware"
 	"github.com/paccy-io/paccy-backend/config"
+	"github.com/paccy-io/paccy-backend/internal/academic"
 	"github.com/paccy-io/paccy-backend/internal/auth"
 	"github.com/paccy-io/paccy-backend/internal/auth/jwt"
 	"github.com/paccy-io/paccy-backend/internal/calendar"
@@ -39,6 +40,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	essayRepo := essay.NewMongoEssayRepository(db)
 	calendarRepo := calendar.NewMongoCalendarRepository(db)
 	extracurricularRepo := extracurriculars.NewMongoExtracurricularRepository(db)
+	academicRepo := academic.NewAcademicRepository(db)
 	userQuotaRepo := repositories.NewMongoUserQuotaRepository(db, &dto.UserQuotaDTO{
 		AuthQuota:         s1,
 		SecurityQuota:     s2,
@@ -64,6 +66,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	essayService := essay.NewEssayService(essayRepo, collegeRepo, validate)
 	calendarService := calendar.NewCalendarService(calendarRepo, collegeRepo, validate)
 	extracurricularService := extracurriculars.NewExtracurricularService(extracurricularRepo)
+	academicService := academic.NewAcademicService(academicRepo)
 	notifyService := notify.NewService(
 		resendProvider,
 		gmailProvider,
@@ -79,6 +82,7 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	essayHandler := handlers.NewEssayHandler(essayService)
 	calendarHandler := handlers.NewCalendarHandler(calendarService)
 	extracurricularHandler := handlers.NewExtracurricularHandler(extracurricularService)
+	academicHandler := handlers.NewAcademicHandler(academicService)
 	authHandler := handlers.NewAuthHandler(authService)
 	/*notificationHandler := handlers.NewNotificationHandler(notifyService, dto.QuotaDTO{
 		ResenderQuota: dto.Quota{
@@ -178,5 +182,19 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	public.Put("/extracurriculars/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), extracurricularHandler.UpdateExtracurricular)
 	public.Delete("/extracurriculars/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), extracurricularHandler.DeleteExtracurricular)
 	public.Get("/extracurriculars/category/:category", middleware.JWTWithUserValidationMiddleware(authService, userService), extracurricularHandler.GetExtracurricularsByCategory)
+
+	// Academic routes - Exams
+	public.Post("/exams", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.CreateExam)
+	public.Get("/exams", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.GetExamsByUserID)
+	public.Get("/exams/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.GetExamByID)
+	public.Put("/exams/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.UpdateExam)
+	public.Delete("/exams/:id", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.DeleteExam)
+	//public.Get("/exams/type/:type", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.GetExamsByType)
+
+	// Academic routes - High School GPA
+	public.Post("/high-school-gpa", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.CreateHighSchoolGPA)
+	public.Get("/high-school-gpa", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.GetHighSchoolGPAByUserID)
+	public.Put("/high-school-gpa", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.UpdateHighSchoolGPA)
+	public.Delete("/high-school-gpa", middleware.JWTWithUserValidationMiddleware(authService, userService), academicHandler.DeleteHighSchoolGPA)
 
 }
