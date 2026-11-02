@@ -1,2 +1,0 @@
-PEER object for each user_id
-PEERS networking, make project together etc

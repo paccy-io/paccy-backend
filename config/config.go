@@ -8,6 +8,8 @@ import (
 	"github.com/paccy-io/paccy-backend/pkg/logger"
 )
 
+const DefaultJWTSecretKey = "your_secret_key"
+
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
@@ -109,7 +111,7 @@ func LoadConfig() *Config {
 			DBName:   getEnv("DATABASE_NAME", "paccy"),
 		},
 		JWT: JWTConfig{
-			SecretKey: getEnv("JWT_SECRET_KEY", "your_secret_key"),
+			SecretKey: getEnv("JWT_SECRET_KEY", DefaultJWTSecretKey),
 			ExpiresIn: getEnvAsInt("JWT_EXPIRES_IN", 3600*8), // default 8 hours in seconds
 			Issuer:    getEnv("JWT_ISSUER", "paccy"),         // main issuer, but in-app auth providers can have their own issuers (ex: auth-service)
 		},

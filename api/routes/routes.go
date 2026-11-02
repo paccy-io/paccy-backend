@@ -119,9 +119,6 @@ func SetupRoutes(api fiber.Router, db *mongo.Database, jwtProvider jwt.Provider,
 	//public.Post("/notify", notificationHandler.SendNotification)
 	//public.Post("/notify/quota", notificationHandler.CreateProjectQuota)
 
-	// User routes
-	public.Get("/users", userHandler.GetUsers)
-
 	// Protected user routes (require JWT + user ID validation + user existence check)
 	public.Get("/users/:userID", middleware.CombinedJWTUserIDWithValidationMiddleware(authService, userService), userHandler.GetUser)
 	public.Put("/users/:userID", middleware.CombinedJWTUserIDWithValidationMiddleware(authService, userService), userHandler.UpdateUserFields)

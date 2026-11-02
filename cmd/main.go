@@ -16,6 +16,11 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
+	// the default secret is public in this repo; never sign production tokens with it
+	if cfg.App.Environment == "production" && cfg.JWT.SecretKey == config.DefaultJWTSecretKey {
+		log.Fatal("JWT_SECRET_KEY must be set in production")
+	}
+
 	expIn := time.Duration(cfg.JWT.ExpiresIn) * time.Second
 	jwtProvider := jwt.NewJWTProvider(cfg.JWT.SecretKey, expIn, cfg.JWT.Issuer)
 	mongoDB, err := database.NewMongoDB(cfg)

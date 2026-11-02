@@ -1,3 +1,0 @@
-main: https://docs.gofiber.io/recipes/clean-architecture/
-
-preferences: domain/feature-based architecture
